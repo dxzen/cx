@@ -1,0 +1,927 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>CX 工作流交互使用图谱</title>
+    <style>
+      :root {
+        --bg: #f5f6f1;
+        --ink: #151816;
+        --muted: #68716c;
+        --line: #d7ddd4;
+        --panel: #ffffff;
+        --wash: #edf3f0;
+        --blue: #245fbd;
+        --green: #146c43;
+        --amber: #a46412;
+        --red: #b42318;
+        --violet: #5b4b8a;
+        --shadow: 0 18px 45px rgba(21, 24, 22, 0.1);
+        --radius: 8px;
+        --sans: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", "Noto Sans SC", sans-serif;
+        --serif: Georgia, "Songti SC", "STSong", serif;
+        --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+      }
+      * { box-sizing: border-box; }
+      html { scroll-behavior: smooth; }
+      body {
+        margin: 0;
+        min-height: 100vh;
+        background:
+          linear-gradient(90deg, rgba(21, 24, 22, 0.035) 1px, transparent 1px) 0 0 / 32px 32px,
+          linear-gradient(0deg, rgba(21, 24, 22, 0.025) 1px, transparent 1px) 0 0 / 32px 32px,
+          var(--bg);
+        color: var(--ink);
+        font-family: var(--sans);
+        letter-spacing: 0;
+      }
+      button, select { font: inherit; }
+      code { font-family: var(--mono); color: var(--blue); }
+      .shell {
+        max-width: 1480px;
+        margin: 0 auto;
+        padding: 24px;
+      }
+      .hero {
+        display: grid;
+        /* grid-template-columns: minmax(0, 1fr) 360px; */
+        gap: 20px;
+        align-items: end;
+        margin-bottom: 18px;
+      }
+      .eyebrow {
+        margin: 0 0 8px;
+        color: var(--blue);
+        font-family: var(--mono);
+        font-size: 12px;
+        font-weight: 800;
+        text-transform: uppercase;
+      }
+      h1 {
+        margin: 0;
+        max-width: 960px;
+        font-family: var(--serif);
+        font-size: clamp(36px, 5vw, 72px);
+        line-height: 0.98;
+        font-weight: 680;
+        text-wrap: pretty;
+      }
+      .intro {
+        margin: 14px 0 0;
+        /* max-width: 900px; */
+        color: var(--muted);
+        font-size: 15px;
+        line-height: 1.8;
+      }
+      .source-note {
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        background: rgba(255, 255, 255, 0.78);
+        padding: 13px 14px;
+        color: var(--muted);
+        font-size: 12px;
+        line-height: 1.65;
+      }
+      .source-note strong { color: var(--ink); }
+      .main-grid {
+        display: grid;
+        grid-template-columns: 5.5fr 4.5fr;
+        gap: 18px;
+        align-items: start;
+        margin-top: 30px;
+      }
+      .board,
+      .inspector,
+      .band {
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        background: rgba(255, 255, 255, 0.86);
+        box-shadow: var(--shadow);
+      }
+      .board { overflow: hidden; }
+      .board-head {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 14px;
+        padding: 16px;
+        border-bottom: 1px solid var(--line);
+        background: rgba(237, 243, 240, 0.82);
+        align-items: center;
+      }
+      .board-head h2,
+      .inspector h2,
+      .band h2 {
+        margin: 0;
+        font-size: 15px;
+      }
+      .board-head p,
+      .band p {
+        margin: 7px 0 0;
+        color: var(--muted);
+        font-size: 13px;
+        line-height: 1.65;
+      }
+      .controls {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+        flex-wrap: wrap;
+      }
+      .segmented {
+        display: inline-flex;
+        padding: 3px;
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        background: var(--panel);
+      }
+      .segmented button,
+      .scenario-select {
+        border: 0;
+        border-radius: 7px;
+        background: transparent;
+        color: var(--muted);
+        padding: 7px 10px;
+        font-size: 12px;
+        cursor: pointer;
+        white-space: nowrap;
+      }
+      .segmented button.active {
+        background: var(--ink);
+        color: #fff;
+      }
+      .scenario-select {
+        border: 1px solid var(--line);
+        background: #fff;
+        color: var(--ink);
+        margin-top: 16px;
+        width: 100%;
+        max-width: 220px;
+      }
+      .flow {
+        padding: 18px;
+        position: relative;
+      }
+      .flow-row {
+        display: grid;
+        grid-template-columns: 70px minmax(0, 1fr);
+        gap: 12px;
+        margin-bottom: 14px;
+        align-items: start;
+      }
+      .flow-row:last-child { margin-bottom: 0; }
+      .lane-label {
+        height: 140px;
+        padding: 60px 10px 0 0;
+        border-right: 2px solid var(--line);
+        color: var(--muted);
+        font-family: var(--mono);
+        font-size: 15px;
+        font-weight: 800;
+        text-align: right;
+        white-space: nowrap;
+      }
+      .lane {
+        display: flex;
+        gap: 10px;
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        align-items: flex-start;
+        padding: 10px 0;
+      }
+      .node {
+        position: relative;
+        width: 140px;
+        min-height: 120px;
+        padding: 8px;
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        background: #fff;
+        color: var(--ink);
+        cursor: pointer;
+        text-align: left;
+        transition: transform 160ms ease, box-shadow 160ms ease, border-color 160ms ease, opacity 160ms ease;
+        margin: 0;
+        flex-shrink: 0;
+      }
+      .node::after {
+        content: "";
+        position: absolute;
+        right: -11px;
+        top: 50%;
+        width: 10px;
+        height: 1px;
+        background: var(--line);
+      }
+      .node:last-child::after { display: none; }
+      .node:hover,
+      .node.active {
+        transform: translateY(-2px);
+        border-color: var(--blue);
+        box-shadow: 0 12px 28px rgba(36, 95, 189, 0.15);
+      }
+      .node.optional {
+        background: #fff9ef;
+        border-color: rgba(164, 100, 18, 0.35);
+      }
+      .node.close {
+        background: #f2fbf5;
+        border-color: rgba(20, 108, 67, 0.35);
+      }
+      .node.utility {
+        background: #f8fbff;
+        border-style: dashed;
+      }
+      .node.filtered { display: none; }
+      .node-meta {
+        display: flex;
+        justify-content: space-between;
+        gap: 8px;
+        color: var(--muted);
+        font-family: var(--mono);
+        font-size: 10px;
+        text-transform: uppercase;
+      }
+      .node-title {
+        display: block;
+        margin-top: 8px;
+        font-size: 16px;
+        font-weight: 780;
+      }
+      .node-command {
+        display: block;
+        margin-top: 8px;
+        font-size: 11px;
+        line-height: 1.45;
+      }
+      .legend {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-top: 16px;
+        padding-top: 14px;
+        border-top: 1px solid var(--line);
+        color: var(--muted);
+        font-size: 12px;
+      }
+      .chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 5px 8px;
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.75);
+      }
+      .dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 999px;
+        background: var(--blue);
+      }
+      .dot.optional { background: var(--amber); }
+      .dot.close { background: var(--green); }
+      .dot.utility { background: var(--violet); }
+      .inspector {
+        position: sticky;
+        top: 18px;
+        overflow: hidden;
+      }
+      .inspector-head {
+        padding: 16px;
+        border-bottom: 1px solid var(--line);
+        background: #101614;
+        color: #fff;
+      }
+      .inspector-head p {
+        margin: 7px 0 0;
+        color: rgba(255, 255, 255, 0.74);
+        font-size: 13px;
+        line-height: 1.6;
+      }
+      .detail {
+        padding: 16px;
+      }
+      .empty {
+        min-height: 520px;
+        display: grid;
+        place-items: center;
+        border: 1px dashed var(--line);
+        border-radius: var(--radius);
+        background: var(--wash);
+        color: var(--muted);
+        text-align: center;
+        line-height: 1.6;
+      }
+      .empty strong {
+        display: block;
+        margin-bottom: 8px;
+        color: var(--ink);
+        font-size: 18px;
+      }
+      .detail-top {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        align-items: flex-start;
+        margin-bottom: 12px;
+      }
+      .detail-top h3 {
+        margin: 0;
+        font-size: 22px;
+        line-height: 1.2;
+      }
+      .badge {
+        display: inline-flex;
+        align-items: center;
+        padding: 5px 8px;
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        color: var(--muted);
+        font-family: var(--mono);
+        font-size: 11px;
+        white-space: nowrap;
+      }
+      .command-box {
+        margin: 12px 0;
+        padding: 12px;
+        border-radius: var(--radius);
+        background: #111714;
+        color: #e7f0ec;
+        font-family: var(--mono);
+        font-size: 12px;
+        line-height: 1.65;
+        overflow-x: auto;
+      }
+      .detail-grid {
+        display: grid;
+        gap: 10px;
+      }
+      .info,
+      .role {
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        background: #fff;
+        padding: 12px;
+      }
+      .info h4,
+      .role strong {
+        display: block;
+        margin: 0 0 8px;
+        color: var(--ink);
+        font-size: 13px;
+      }
+      .info ul {
+        margin: 0;
+        padding-left: 18px;
+        color: var(--muted);
+        font-size: 13px;
+        line-height: 1.65;
+      }
+      .roles {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 8px;
+      }
+      .role p {
+        margin: 0;
+        color: var(--muted);
+        font-size: 12px;
+        line-height: 1.6;
+      }
+      .relation {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 8px;
+      }
+      .bands {
+        display: grid;
+        grid-template-columns: 1.1fr 0.9fr;
+        gap: 18px;
+        margin-top: 18px;
+      }
+      .band {
+        padding: 16px;
+      }
+      .principles,
+      .mechanisms,
+      .example-cards {
+        display: grid;
+        gap: 10px;
+        margin-top: 14px;
+      }
+      .principles {
+        grid-template-columns: repeat(5, minmax(0, 1fr));
+      }
+      .mechanisms {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+      }
+      .example-cards {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+      .mini {
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        background: #fff;
+        padding: 12px;
+      }
+      .mini .num {
+        color: var(--blue);
+        font-family: var(--mono);
+        font-size: 12px;
+        font-weight: 800;
+      }
+      .mini h3 {
+        margin: 7px 0 6px;
+        font-size: 14px;
+      }
+      .mini p,
+      .mini li {
+        margin: 0;
+        color: var(--muted);
+        font-size: 12px;
+        line-height: 1.65;
+      }
+      .mini ul {
+        margin: 0;
+        padding-left: 18px;
+      }
+      @media (max-width: 1180px) {
+        .hero,
+        .main-grid,
+        .bands {
+          grid-template-columns: 1fr;
+        }
+        .inspector {
+          position: static;
+        }
+        .principles,
+        .mechanisms,
+        .example-cards {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+      }
+      @media (max-width: 760px) {
+        .shell {
+          padding: 14px;
+        }
+        .board-head,
+        .flow-row,
+        .roles,
+        .relation,
+        .principles,
+        .mechanisms,
+        .example-cards {
+          grid-template-columns: 1fr;
+        }
+        .lane-label {
+          border-right: 0;
+          border-bottom: 2px solid var(--line);
+          padding: 0 0 8px;
+          text-align: left;
+        }
+        .node {
+          width: min(100%, 210px);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="shell">
+      <header class="hero">
+        <div>
+          <p class="eyebrow">CX usage map · source based</p>
+          <h2>CX ≈ OpenSpec + Superpowers , 是一个同时兼容 Codex CLI 与 Claude Code 的轻量 AI 编程工作流插件 </h2>
+          <p class="intro">
+            CX 把一次代码变更拆成可验证的阶段：先确认可观察行为，再写变更契约和任务清单，按 TDD 实现，最后用验证证据、审查结论、长期规格同步和归档收尾。</br>
+            CX 不是让内部脚本替代 AI，而是让每个 Skill 节点规定：读什么、写什么、什么时候必须停、什么时候可以进入下游。AI 执行判断和编码，用户确认目标与关键取舍，CX 产物与门禁负责把过程固定下来。
+          </p>
+        </div>
+      </header>
+
+      <section class="bands">
+        <div class="band">
+          <h2>设计理念</h2>
+          <p>CX 源码中的核心设计是“阶段协议”：每一步都必须有输入、产出、校验与下一步，而不是把所有判断留在长上下文里。</p>
+          </br>
+          <div class="principles">
+            <div class="mini"><span class="num">01</span><h3>规范先行</h3><p>Normal/Large 先写 `contract.md`，用 Requirement 与 Scenario 固定行为。</p></div>
+            <div class="mini"><span class="num">02</span><h3>最小必要流程</h3><p>Micro 可轻量处理；Normal 需要契约、任务和证据；Large 增加设计或隔离。</p></div>
+            <div class="mini"><span class="num">03</span><h3>TDD 铁律</h3><p>`build` 明确禁止没看到 RED 失败就写 production code。</p></div>
+            <div class="mini"><span class="num">04</span><h3>证据闭环</h3><p>`verify` 必须写 fresh verification，`review` 必须给唯一 Decision。</p></div>
+            <div class="mini"><span class="num">05</span><h3>长期事实</h3><p>`sync` 把本次 spec delta 合入 `.cx/specs/`，后续需求默认读取它。</p></div>
+          </div>
+        </div>
+        <div class="band">
+          <h2>运行机制概述</h2>
+          <p>CX 由 Skill、落盘产物、确定性门禁三层组成。Skill 决定 AI 行为，Markdown 产物压缩上下文，内部脚本只做可重复校验和状态推断。</p>
+          <div class="mechanisms">
+            <div class="mini"><h3>Skill 层</h3><p>`skills/*/SKILL.md` 规定节点读取物、停止条件、输出结构和用户确认点。</p></div>
+            <div class="mini"><h3>产物层</h3><p>`.cx/changes/&lt;id&gt;/` 保存每个阶段的上下文账本，下游只读落盘文件。</p></div>
+            <div class="mini"><h3>门禁层</h3><p>`scripts/cx.js` 校验章节、任务进度、PASS/FAIL、Decision、spec 状态和路径安全。</p></div>
+            <div class="mini"><h3>清理策略</h3><p>Contract、Visual、Design、Tasks、Verify、Review 后都建议清理上下文，让下游依赖产物。</p></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="main-grid" aria-label="CX 完整流水线">
+        <div class="board">
+          <div class="board-head">
+            <div>
+              <h2>完整流水线</h2>
+              <p>主线从 `work` 到 `archive`。Bug、UI、技术设计、worktree 是源码定义的条件分支；`status` 与 `validate` 是跨节点辅助 Skill。</p>
+            </div>
+            <div class="segmented" aria-label="节点过滤">
+              <button class="filter active" data-filter="all">全部</button>
+              <button class="filter" data-filter="main">主线</button>
+              <button class="filter" data-filter="optional">分支</button>
+              <button class="filter" data-filter="utility">辅助</button>
+            </div>
+          </div>
+          <div class="flow">
+            <div class="flow-row">
+              <div class="lane-label">入口</div>
+              <div class="lane">
+                <button class="node utility" data-node="init"><span class="node-meta"><span>Skill</span><span>setup</span></span><span class="node-title">Init</span><code class="node-command">init</code></button>
+                <button class="node main" data-node="work"><span class="node-meta"><span>Skill</span><span>intent</span></span><span class="node-title">Work</span><code class="node-command">work &lt;需求&gt;</code></button>
+                <button class="node optional" data-node="debug"><span class="node-meta"><span>Skill</span><span>bug</span></span><span class="node-title">Debug</span><code class="node-command">debug &lt;bug&gt;</code></button>
+              </div>
+            </div>
+            <div class="flow-row">
+              <div class="lane-label">规范</div>
+              <div class="lane">
+                <button class="node main" data-node="contract"><span class="node-meta"><span>Skill</span><span>spec</span></span><span class="node-title">Contract</span><code class="node-command">contract &lt;change&gt;</code></button>
+                <button class="node optional" data-node="visual"><span class="node-meta"><span>Skill</span><span>ui</span></span><span class="node-title">Visual</span><code class="node-command">visual &lt;change&gt;</code></button>
+                <button class="node optional" data-node="design"><span class="node-meta"><span>Skill</span><span>choice</span></span><span class="node-title">Design</span><code class="node-command">design &lt;change&gt;</code></button>
+                <button class="node optional" data-node="worktree"><span class="node-meta"><span>Skill</span><span>large</span></span><span class="node-title">Worktree</span><code class="node-command">worktree &lt;change&gt;</code></button>
+              </div>
+            </div>
+            <div class="flow-row">
+              <div class="lane-label">实现</div>
+              <div class="lane">
+                <button class="node main" data-node="tasks"><span class="node-meta"><span>Skill</span><span>tdd</span></span><span class="node-title">Tasks</span><code class="node-command">tasks &lt;change&gt;</code></button>
+                <button class="node main" data-node="build"><span class="node-meta"><span>Skill</span><span>code</span></span><span class="node-title">Build</span><code class="node-command">build &lt;change&gt;</code></button>
+                <button class="node main" data-node="verify"><span class="node-meta"><span>Skill</span><span>proof</span></span><span class="node-title">Verify</span><code class="node-command">verify &lt;change&gt;</code></button>
+                <button class="node main" data-node="review"><span class="node-meta"><span>Skill</span><span>review</span></span><span class="node-title">Review</span><code class="node-command">review &lt;change&gt;</code></button>
+              </div>
+            </div>
+            <div class="flow-row">
+              <div class="lane-label">收尾</div>
+              <div class="lane">
+                <button class="node close" data-node="sync"><span class="node-meta"><span>Skill</span><span>spec</span></span><span class="node-title">Sync</span><code class="node-command">sync &lt;change&gt;</code></button>
+                <button class="node close" data-node="archive"><span class="node-meta"><span>Skill</span><span>done</span></span><span class="node-title">Archive</span><code class="node-command">archive &lt;change&gt;</code></button>
+                <button class="node utility" data-node="status"><span class="node-meta"><span>Skill</span><span>inspect</span></span><span class="node-title">Status</span><code class="node-command">status</code></button>
+                <button class="node utility" data-node="validate"><span class="node-meta"><span>Skill</span><span>gate</span></span><span class="node-title">Validate</span><code class="node-command">validate</code></button>
+              </div>
+            </div>
+
+            <select id="scenario" class="scenario-select" aria-label="选择优秀示例">
+              <option value="feature">示例：登录限流功能</option>
+              <option value="bug">示例：空购物车 NaN</option>
+              <option value="ui">示例：结算表单 UI</option>
+            </select>
+            
+            <div class="legend">
+              <span class="chip"><span class="dot"></span>主线 Skill：Normal/Large 默认经过</span>
+              <span class="chip"><span class="dot optional"></span>条件分支：Bug、UI、技术取舍、大型变更</span>
+              <span class="chip"><span class="dot close"></span>收尾：长期规格同步与归档</span>
+              <span class="chip"><span class="dot utility"></span>辅助 Skill：状态推断与结构校验</span>
+            </div>
+            
+          </div>
+        </div>
+        <aside class="inspector">
+          <!-- <div class="inspector-head">
+            <h2>节点详情</h2>
+            <p>点击左侧节点后，右侧只展示当前节点的输入、职责、产出物，以及 Skill/CX、AI、用户如何协调。</p>
+          </div> -->
+          <div id="detail" class="detail">
+            <div class="empty">
+              <div>
+                <strong>点击一个节点</strong>
+                例如点击 `Contract`，查看它默认读取什么、写出什么，以及 AI 和用户在这一阶段分别负责什么。
+              </div>
+            </div>
+          </div>
+        </aside>
+      </section>
+
+      <section class="band" style="margin-top: 18px">
+        <h2>流程概要说明</h2>
+        <p id="scenarioSummary"></p>
+        <div class="example-cards">
+          <div class="mini"><h3>Skill/CX 负责</h3><ul><li>定义每个阶段的职责、读写文件和停止条件。</li><li>用内部门禁阻塞缺章节、缺 RED/GREEN、FAIL、pending sync、非 PASS review。</li><li>通过 `.cx/specs/` 和 archive 区分长期事实与历史账本。</li></ul></div>
+          <div class="mini"><h3>AI 负责</h3><ul><li>澄清需求、写 contract/tasks/evidence/review。</li><li>按 RED -> GREEN -> REFACTOR 实现并汇总验证。</li><li>发现冲突时停下说明，而不是静默猜测。</li></ul></div>
+          <div class="mini"><h3>用户负责</h3><ul><li>给出目标、补充阻塞信息、确认 UI 或技术取舍。</li><li>在归档、worktree、final 原型等关键点做确认。</li><li>决定 warning 或剩余风险是否可接受。</li></ul></div>
+        </div>
+      </section>
+    </main>
+    <script>
+      const scenarios = {
+        feature: {
+          change: "add-login-rate-limit",
+          request: "给登录接口增加失败次数限流，连续失败 5 次后锁定 15 分钟",
+          summary: "登录限流是 Normal 功能变更：`work` 识别行为目标，`contract` 固化锁定规则和验收场景，`tasks/build` 按 TDD 先写失败测试再实现，`verify/review` 用证据和审查收口，`sync/archive` 把长期认证行为沉淀并关闭变更。",
+        },
+        bug: {
+          change: "fix-empty-cart-total",
+          request: "购物车为空时总价显示 NaN，期望显示 0",
+          summary: "空购物车 NaN 是 Bug 分支：症状或根因不清时先 `debug` 写最小复现和 regression test，再由 `contract` 把 Observed/Expected 转成 Requirement，后续仍走 TDD、fresh verification、review 和归档。",
+        },
+        ui: {
+          change: "checkout-form-states",
+          request: "重做结算页表单交互和错误状态",
+          summary: "结算表单是 UI 变更：`contract` 后进入 `visual`，先让用户确认原型形态、视觉方向和 Tweaks，再产出 editable/final/style-guide；`design/tasks/build` 只读取 final 原型和样式规范。",
+        },
+      };
+      const nodes = {
+        init: {
+          title: "Init / 初始化 CX 工作区",
+          group: "utility",
+          command: "init",
+          inputs: ["用户触发首次初始化", "当前 repo 根目录", "插件安装位置与用户级 `${HOME}/.cx` 入口"],
+          duty: ["建立 `.cx/specs`、`.cx/changes`、`.cx/archive`、`.cx/worktrees`", "补齐 `${HOME}/.cx/cx.js` 入口", "不覆盖已有文件"],
+          outputs: ["项目级 `.cx/` 结构", "后续 Skill 可共享的本地工作流目录"],
+          skill: "Init Skill 负责把 CX 工作流装进当前仓库，并把内部执行入口准备好。",
+          ai: "运行初始化，摘要结果，并提示下一步从 `work` 开始。",
+          user: "确认当前目录就是目标项目；如果插件路径缺失，修正安装环境。",
+          upstream: "插件已安装但项目尚未建立 `.cx/`。",
+          downstream: "`work <需求>` 或 `status`。",
+          gates: ["找不到有效插件入口则停止", "初始化只创建目录与入口，不开始变更"],
+          example: (s) => `init\nwork ${s.request}`,
+        },
+        work: {
+          title: "Work / Intent 与路由",
+          group: "main",
+          command: "work <需求>",
+          inputs: ["用户自然语言需求", "相关 `.cx/specs/` 长期规格", "项目约束、测试框架、已有 change 状态"],
+          duty: ["提取可观察行为、边界、非目标、成功标准", "判断 Micro / Normal / Large / Bug", "输出下一步 Skill，自己不写 production code"],
+          outputs: ["Intent 摘要", "变更级别", "下一步 Skill 建议"],
+          skill: "Work Skill 规定澄清规则和路由规则，避免 AI 一上来写代码。",
+          ai: "读取项目和长期规格，把需求收敛成可执行路径；只有阻塞歧义时问一个问题。",
+          user: "描述目标或在多种合理解读中选择一个。",
+          upstream: "用户请求或已有活跃变更。",
+          downstream: "Normal/Large 去 `contract`，Bug 不清晰去 `debug`，已有变更按状态继续。",
+          gates: ["多个活跃 change 时必须指定", "需求不清时停止提问", "不在 work 阶段实现"],
+          example: (s) => `work ${s.request}`,
+        },
+        debug: {
+          title: "Debug / Bug 复现",
+          group: "optional",
+          command: "debug <bug>",
+          inputs: ["Bug 症状", "期望行为", "复现环境或输入"],
+          duty: ["创建 `debug.md`", "记录 Observed、Expected、Reproduction、Hypotheses、Regression Test", "先复现再修复"],
+          outputs: ["`.cx/changes/<change-id>/debug.md`", "供 contract 读取的 Bug 事实"],
+          skill: "Debug Skill 把 Bug 修复前移到复现与 regression test 设计，防止未复现就试修。",
+          ai: "找最小复现，列根因假设，规划修复前会失败的测试。",
+          user: "补充真实症状、期望和复现材料。",
+          upstream: "Bug 请求或 work 路由。",
+          downstream: "`contract <change-id>` 必须读取 `debug.md`。",
+          gates: ["debug.md 必须有五个章节", "缺 regression test 说明会产生警告", "复现前不写修复代码"],
+          example: (s) => `debug ${s.request}\ncontract ${s.change}`,
+        },
+        contract: {
+          title: "Contract / 变更契约",
+          group: "main",
+          command: "contract <需求|change-id>",
+          inputs: ["用户需求或 change-id", "可选 `debug.md`", "相关 `.cx/specs/`"],
+          duty: ["创建 `contract.md`", "写 Intent、Scope In/Out、Requirements、Scenarios、Spec Delta、Verification", "必要时创建 change-local spec delta"],
+          outputs: ["`.cx/changes/<change-id>/contract.md`", "可选 `.cx/changes/<change-id>/specs/<capability>.md`"],
+          skill: "Contract Skill 负责把需求固定成下游唯一可信输入，且不把实现细节伪装成需求。",
+          ai: "把可观察行为写成 MUST/SHOULD/MAY 与 Given/When/Then，并给出验证命令。",
+          user: "确认 Scope、Out、场景和长期规格是否正确。",
+          upstream: "`work` 的 Intent；Bug 分支还读取 `debug.md`。",
+          downstream: "UI 进入 `visual`，复杂取舍进入 `design`，否则进入 `tasks`。",
+          gates: ["Out 不能为空", "每个 Requirement 至少一个 Scenario", "Spec Delta 必须是 delta 文件或 Skipped reason", "Verification 至少一条"],
+          example: (s) => `contract ${s.request}\nvalidate ${s.change} --stage contract`,
+        },
+        visual: {
+          title: "Visual / UI 原型确认",
+          group: "optional",
+          command: "visual <change-id>",
+          inputs: ["`contract.md`", "现有 UI 约束或前端文件", "已有 visual 产物时增量读取"],
+          duty: ["确认原型形态、视觉方向、关键交互和 Tweaks", "生成 editable 工作稿、final 确认稿、style-guide", "让下游只读 final 与 style-guide"],
+          outputs: ["`visual/prototype.editable.html`", "`visual/prototype.final.html`", "`visual/style-guide.md`"],
+          skill: "Visual Skill 把 UI 需求转成可点、可调、可确认的原型，并规定 final 纯净稿协议。",
+          ai: "从 contract 提取 UI 状态，给出确认 brief，制作覆盖关键状态的原型。",
+          user: "选择视觉方向，体验 editable，确认并导出 final。",
+          upstream: "`contract.md`。",
+          downstream: "`design/tasks/build` 读取 `prototype.final.html` 和 `style-guide.md`，不读取 editable。",
+          gates: ["editable 必须包含 Visual Editor Shell 协议", "final 不得包含编辑器痕迹", "style-guide 必须有色板、字体和 final 路径"],
+          example: (s) => `visual ${s.change}\n# 用户确认并导出 visual/prototype.final.html`,
+        },
+        design: {
+          title: "Design / 必要技术设计",
+          group: "optional",
+          command: "design <change-id>",
+          inputs: ["`contract.md`", "可选 visual final 与 style-guide", "项目既有技术栈和测试工具"],
+          duty: ["判断是否需要 `design.md`", "记录关键决策、技术栈、影响文件、测试策略、风险", "把已确认技术栈变成下游硬约束"],
+          outputs: ["`.cx/changes/<change-id>/design.md` 或明确跳过理由"],
+          skill: "Design Skill 只在跨模块、迁移、性能、安全、UI 约束或技术取舍存在时介入。",
+          ai: "读取现有约束，比较方案，说明放弃的备选与风险。",
+          user: "确认技术栈选型或允许跳过设计。",
+          upstream: "`contract.md`；UI 变更还读取 final 原型和 style-guide。",
+          downstream: "`tasks/build` 必须遵守 design 中确认的技术栈。",
+          gates: ["未确认技术栈不得写成最终设计", "design.md 必须有关键决策或方案", "建议包含验证策略"],
+          example: (s) => `design ${s.change}\ntasks ${s.change}`,
+        },
+        worktree: {
+          title: "Worktree / Large 隔离",
+          group: "optional",
+          command: "worktree <change-id>",
+          inputs: ["Large 或高风险 change-id", "Git 仓库", "`.cx/worktrees/` ignore 状态"],
+          duty: ["为大型变更准备隔离工作区", "先 dry-run，再经用户确认创建", "保持 `.cx` 状态仍以原项目根为准"],
+          outputs: ["可选 `.cx/worktrees/<change-id>`", "可选 `cx/<change-id>` 分支"],
+          skill: "Worktree Skill 是可选安全隔离，不默认增加小任务成本。",
+          ai: "判断是否值得建议隔离，并在失败时说明具体前置条件。",
+          user: "确认是否创建，必要时允许把 `.cx/worktrees/` 加入 ignore。",
+          upstream: "`contract` 或 `design` 后确认是 Large / 高风险。",
+          downstream: "在隔离工作区继续 `tasks/build`。",
+          gates: ["必须先 dry-run", "创建前需要用户确认", "worktrees 未被 ignore 时停止"],
+          example: (s) => `worktree ${s.change}\n# 确认后在隔离工作区继续 build`,
+        },
+        tasks: {
+          title: "Tasks / TDD 拆分",
+          group: "main",
+          command: "tasks <change-id>",
+          inputs: ["`contract.md`", "contract 引用的 spec delta", "可选 `design.md`", "可选 visual final 与 style-guide"],
+          duty: ["按 Requirement 拆 RED/GREEN/VERIFY/REFACTOR", "写测试文件、命令、预期失败、最小实现范围", "Large 或多任务时写 Parallel Execution Plan"],
+          outputs: ["`.cx/changes/<change-id>/tasks.md`"],
+          skill: "Tasks Skill 把需求转成可以先失败、再最小实现、再验证的任务账本。",
+          ai: "识别测试入口和写入范围，避免空泛任务；需要新技术栈时回到 design。",
+          user: "补充未知测试命令，或确认任务拆分符合优先级。",
+          upstream: "`contract`；可选 `visual/design`。",
+          downstream: "`build` 从第一个未完成 checkbox 开始执行。",
+          gates: ["必须包含 checkbox、RED、GREEN、Command", "中文叙述会被校验", "并行计划要有 Worker、Write scope、Commands、Depends on"],
+          example: (s) => `tasks ${s.change}\nbuild ${s.change}`,
+        },
+        build: {
+          title: "Build / TDD 实现",
+          group: "main",
+          command: "build <change-id>",
+          inputs: ["`tasks.md`", "`contract.md`", "spec delta", "可选 `design.md` 与 visual final", "当前代码"],
+          duty: ["执行 RED -> GREEN -> REFACTOR", "只做当前任务最小实现", "勾选任务并留下 RED/GREEN 证据", "并行 worker 只能按 tasks 计划启用"],
+          outputs: ["代码变更", "`tasks.md` 任务进度", "后续 evidence 使用的 TDD 证据"],
+          skill: "Build Skill 的核心规则是：没有失败测试就不写 production code。",
+          ai: "写失败测试、确认失败原因、做最小实现、绿色后局部重构，并审查 worker 改动。",
+          user: "处理无法自动决定的冲突，尤其是已有未提交改动或产品取舍。",
+          upstream: "`tasks.md` 是唯一实现计划；design/visual 是硬约束。",
+          downstream: "所有实现任务完成后进入 `verify`。",
+          gates: ["没有 RED 失败不得写 production code", "自己无 RED 的实现要回退重来", "不得回退用户已有改动", "worker 写入范围不能重叠"],
+          example: (s) => `build ${s.change}\nstatus`,
+        },
+        verify: {
+          title: "Verify / Fresh verification",
+          group: "main",
+          command: "verify <change-id>",
+          inputs: ["`contract.md`", "`tasks.md`", "spec delta", "相关 diff 与验证命令"],
+          duty: ["运行最终验证", "按 Requirement 汇总覆盖", "检查 diff、TDD 证据和 durable specs 状态", "写 `evidence.md`"],
+          outputs: ["`.cx/changes/<change-id>/evidence.md`"],
+          skill: "Verify Skill 把“完成了”改成可审计证据，任何 FAIL 都不能带入下游。",
+          ai: "运行 fresh verification，记录命令、结果、关键输出、跳过原因和剩余风险。",
+          user: "提供缺失环境或确认人工检查；不能要求忽略 FAIL 继续下游。",
+          upstream: "完成的 build 与当前 diff。",
+          downstream: "`review` 读取 evidence 和 diff。",
+          gates: ["evidence 必须有五大章节", "Verification Commands 不得有 FAIL", "Requirement Coverage 必须有真实证据", "Durable specs 状态必须明确"],
+          example: (s) => `verify ${s.change}\nreview ${s.change}`,
+        },
+        review: {
+          title: "Review / 归档前审查",
+          group: "main",
+          command: "review <change-id>",
+          inputs: ["`contract.md`", "`tasks.md`", "`evidence.md`", "spec delta", "相关 diff"],
+          duty: ["审查 Scope、Findings、Spec Coverage、Code Quality、Test Gaps", "写唯一 Decision", "阻塞问题必须 NEEDS_CHANGES"],
+          outputs: ["`.cx/changes/<change-id>/review.md`"],
+          skill: "Review Skill 是归档前质量门，不是总结；它决定是否可进入 sync/archive。",
+          ai: "可分片审查，但最终 findings 去重、定级和 Decision 由主 agent 写。",
+          user: "决定是否修复阻塞项或接受非阻塞风险。",
+          upstream: "`verify` 产出的证据。",
+          downstream: "PASS 后，pending specs 去 `sync`，否则可 `archive`。",
+          gates: ["review.md 必须有六大章节", "Decision 只能一个", "archive 前必须 PASS", "阻塞 finding 不得 PASS"],
+          example: (s) => `review ${s.change}\nsync ${s.change}`,
+        },
+        sync: {
+          title: "Sync / Durable specs 同步",
+          group: "close",
+          command: "sync <change-id>",
+          inputs: ["`review.md` 且 Decision: PASS", "`.cx/changes/<id>/specs/*.md`", "现有 `.cx/specs/*.md`", "`evidence.md` durable 状态"],
+          duty: ["把本次 spec delta 合并到长期规格", "支持 ADDED / MODIFIED / REMOVED / RENAMED", "成功后把 pending sync 更新为 updated"],
+          outputs: ["更新后的 `.cx/specs/<capability>.md`", "`evidence.md` 的 `Durable specs: updated`"],
+          skill: "Sync Skill 让本次变更的长期行为成为未来需求默认读取的事实。",
+          ai: "确认 delta 完整，先预检，再同步并报告增删改名数量。",
+          user: "确认该行为确实应该进入长期规格；不需要时应说明 skipped reason。",
+          upstream: "`review` PASS 且 durable specs pending-sync。",
+          downstream: "`archive` 要求 updated 或 skipped because。",
+          gates: ["review 必须 PASS", "inline substantive delta 不能直接同步", "MODIFIED/RENAMED 目标必须存在", "delta 路径不得越界"],
+          example: (s) => `sync ${s.change}\narchive ${s.change}`,
+        },
+        archive: {
+          title: "Archive / 关闭变更",
+          group: "close",
+          command: "archive <change-id>",
+          inputs: ["已完成 `tasks.md`", "无 FAIL 的 `evidence.md`", "`review.md` 且 PASS", "durable specs updated 或 skipped because"],
+          duty: ["归档前预检", "阻塞 pending sync", "移动 change 到 `.cx/archive/YYYY-MM-DD-<change-id>/`"],
+          outputs: ["`.cx/archive/YYYY-MM-DD-<change-id>/`", "活跃变更关闭"],
+          skill: "Archive Skill 负责关闭变更并保留历史账本；它不负责合并长期规格。",
+          ai: "先预检，解释阻塞项，获得用户确认后归档并报告状态。",
+          user: "确认关闭本次变更。",
+          upstream: "`review` PASS 且 sync/skipped 完成。",
+          downstream: "新变更从 `.cx/specs/` 读取长期事实，archive 只作历史追溯。",
+          gates: ["所有实现任务完成", "review 必须 PASS", "pending sync 不得归档", "updated 状态会核对长期规格"],
+          example: (s) => `archive ${s.change}\nstatus`,
+        },
+        status: {
+          title: "Status / 状态读取",
+          group: "utility",
+          command: "status",
+          inputs: ["`.cx/changes/*`", "各 change 的产物文件", "任务进度、review Decision、durable spec 状态"],
+          duty: ["展示活跃变更、当前阶段、任务进度、下一步", "在唯一活跃变更时辅助其他 Skill 推导 change-id"],
+          outputs: ["状态摘要", "下一步建议"],
+          skill: "Status Skill 是流程仪表盘，只报告事实和下一步，不宣称完成。",
+          ai: "读取状态，选择正确下游 Skill，避免手动猜测。",
+          user: "在多个活跃变更时指定目标。",
+          upstream: "任意阶段的 `.cx` 状态。",
+          downstream: "路由到 contract/tasks/build/verify/review/sync/archive。",
+          gates: ["多个活跃变更不能自动猜", "status 不是验证证据"],
+          example: (s) => `status\n# 如有多个变更，后续指定 ${s.change}`,
+        },
+        validate: {
+          title: "Validate / 结构门禁",
+          group: "utility",
+          command: "validate [--stage <stage>]",
+          inputs: ["目标 stage", "目标 change 或唯一活跃 change", "对应阶段产物"],
+          duty: ["用确定性规则检查章节、产物、任务、证据、review、visual final、durable specs", "输出 error 与 warning"],
+          outputs: ["校验报告", "必须修复的 error 与建议处理的 warning"],
+          skill: "Validate Skill 让 AI 不靠记忆判断能否进入下游；error 是阻塞项。",
+          ai: "先修 error，再继续当前阶段；不能绕过门禁。",
+          user: "指定 change 或决定 warning 是否接受。",
+          upstream: "任意阶段产物。",
+          downstream: "通过后进入对应下游；失败则回到当前阶段修复。",
+          gates: ["合法 stage 固定", "error 不得下游", "`sync` 是独立阶段，不是 validate stage"],
+          example: (s) => `validate ${s.change} --stage verify`,
+        },
+      };
+      const detail = document.getElementById("detail");
+      const scenarioSelect = document.getElementById("scenario");
+      const scenarioSummary = document.getElementById("scenarioSummary");
+      let selected = null;
+      function bullet(items) {
+        return `<ul>${items.map((item) => `<li>${item}</li>`).join("")}</ul>`;
+      }
+      function render(nodeId) {
+        selected = nodeId;
+        const node = nodes[nodeId];
+        const scenario = scenarios[scenarioSelect.value];
+        document.querySelectorAll(".node").forEach((button) => {
+          button.classList.toggle("active", button.dataset.node === nodeId);
+        });
+        detail.innerHTML = `
+          <div class="detail-top">
+            <h3>${node.title}</h3>
+            <span class="badge">命令:${node.command}</span>
+            <span class="badge">${node.group}</span>
+          </div>
+          <div class="command-box">${node.example(scenario)}</div>
+          <div class="detail-grid">
+            <div class="info"><h4>用户输入或默认读取前一步产出物</h4>${bullet(node.inputs)}</div>
+            <div class="info"><h4>节点职责</h4>${bullet(node.duty)}</div>
+            <div class="info"><h4>产出物</h4>${bullet(node.outputs)}</div>
+            <div class="roles">
+              <div class="role"><strong>Skill / CX 做什么</strong><p>${node.skill}</p></div>
+              <div class="role"><strong>AI 做什么</strong><p>${node.ai}</p></div>
+              <div class="role"><strong>用户做什么</strong><p>${node.user}</p></div>
+            </div>
+            <div class="relation">
+              <div class="info"><h4>上游关系</h4>${bullet([node.upstream])}</div>
+              <div class="info"><h4>下游关系</h4>${bullet([node.downstream])}</div>
+            </div>
+            <div class="info"><h4>门禁 / 停止条件</h4>${bullet(node.gates)}</div>
+          </div>
+        `;
+      }
+      function applyFilter(group) {
+        document.querySelectorAll(".filter").forEach((button) => {
+          button.classList.toggle("active", button.dataset.filter === group);
+        });
+        document.querySelectorAll(".node").forEach((button) => {
+          const nodeGroup = nodes[button.dataset.node].group;
+          const visible = group === "all" || nodeGroup === group || (group === "main" && nodeGroup === "close");
+          button.classList.toggle("filtered", !visible);
+        });
+      }
+      function updateScenario() {
+        scenarioSummary.textContent = scenarios[scenarioSelect.value].summary;
+        if (selected) render(selected);
+      }
+      document.querySelectorAll(".node").forEach((button) => {
+        button.addEventListener("click", () => render(button.dataset.node));
+      });
+      document.querySelectorAll(".filter").forEach((button) => {
+        button.addEventListener("click", () => applyFilter(button.dataset.filter));
+      });
+      scenarioSelect.addEventListener("change", updateScenario);
+      updateScenario();
+      applyFilter("all");
+    </script>
+  </body>
+</html>
