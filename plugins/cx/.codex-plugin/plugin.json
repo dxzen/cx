@@ -1,0 +1,39 @@
+{
+    "author": {
+        "name": "cx",
+        "url": "https://github.com/dxzen/cx"
+    },
+    "description": "面向 Codex 的需求驱动、规范先行、TDD 实现的轻量 AI 编程工作流。",
+    "homepage": "https://github.com/dxzen/cx",
+    "interface": {
+        "brandColor": "#2563EB",
+        "capabilities": [
+            "Interactive",
+            "Read",
+            "Write"
+        ],
+        "category": "Developer Tools",
+        "defaultPrompt": [
+            "Use CX to manage this code change.",
+            "Start a CX workflow for this feature."
+        ],
+        "developerName": "cx",
+        "displayName": "CX",
+        "longDescription": "Use CX to guide coding agents through intent, contract, design, TDD implementation, verification, review, and archive stages with durable evidence.",
+        "shortDescription": "Spec-first TDD workflow for Codex"
+    },
+    "keywords": [
+        "codex",
+        "skills",
+        "requirements",
+        "spec-first",
+        "sdd",
+        "tdd",
+        "workflow"
+    ],
+    "license": "MIT",
+    "name": "cx",
+    "repository": "https://github.com/dxzen/cx",
+    "skills": "./skills/",
+    "version": "1.0.0"
+}

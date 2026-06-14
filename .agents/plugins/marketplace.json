@@ -1,0 +1,20 @@
+{
+  "interface": {
+    "displayName": "CX"
+  },
+  "name": "dxzen-cx",
+  "plugins": [
+    {
+      "category": "Developer Tools",
+      "name": "cx",
+      "policy": {
+        "authentication": "ON_INSTALL",
+        "installation": "AVAILABLE"
+      },
+      "source": {
+        "path": "./plugins/cx",
+        "source": "local"
+      }
+    }
+  ]
+}

@@ -1,0 +1,18 @@
+{
+  "description": "CX 👉 需求驱动、规范先行、TDD 工作流",
+  "name": "dxzen-cx",
+  "owner": {
+    "name": "cx"
+  },
+  "plugins": [
+    {
+      "author": {
+        "name": "ht"
+      },
+      "description": "需求驱动、规范先行、TDD 实现的轻量 AI 编程工作流。",
+      "name": "cx",
+      "source": "./",
+      "version": "1.0.0"
+    }
+  ]
+}

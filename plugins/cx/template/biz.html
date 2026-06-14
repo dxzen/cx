@@ -1,0 +1,983 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes, viewport-fit=cover" />
+    <title>商业画布 · Business Model Canvas</title>
+    <style>
+      :root {
+        --bg: #08080b;
+        --bg-card: #121216;
+        --bg-card-hover: #18181d;
+        --gold: #c8a45c;
+        --gold-light: #e2c97e;
+        --gold-dim: #8b7235;
+        --gold-glow: rgba(200, 164, 92, 0.25);
+        --gold-soft: rgba(200, 164, 92, 0.1);
+        --border-subtle: rgba(200, 164, 92, 0.18);
+        --border-hover: rgba(200, 164, 92, 0.5);
+        --fg: #e8e4dc;
+        --fg-dim: #b5b0a6;
+        --fg-muted: #7a7570;
+        --radius-card: 14px;
+        --radius-inner: 10px;
+        --transition-fast: 180ms cubic-bezier(0.4, 0, 0.2, 1);
+        --transition-slow: 400ms cubic-bezier(0.4, 0, 0.2, 1);
+        --font-display: "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans SC", system-ui, -apple-system, sans-serif;
+        --font-body: "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", system-ui, -apple-system, sans-serif;
+        --font-en: "SF Pro Display", "Inter", "Helvetica Neue", system-ui, sans-serif;
+      }
+
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      html {
+        scroll-behavior: smooth;
+        -webkit-tap-highlight-color: transparent;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+      }
+
+      body {
+        font-family: var(--font-body);
+        background: var(--bg);
+        color: var(--fg);
+        min-height: 100vh;
+        min-height: 100dvh;
+        overflow-x: hidden;
+        position: relative;
+        line-height: 1.5;
+      }
+
+      /* ── Canvas particle layer ── */
+      #particle-canvas {
+        position: fixed;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        z-index: 0;
+        pointer-events: none;
+        opacity: 0.85;
+      }
+
+      /* ── SVG decorative overlay ── */
+      .svg-overlay {
+        position: fixed;
+        inset: 0;
+        z-index: 0;
+        pointer-events: none;
+        opacity: 0.22;
+      }
+      .svg-overlay line,
+      .svg-overlay circle {
+        stroke: var(--gold-dim);
+        stroke-width: 0.6;
+        stroke-dasharray: 3 6;
+      }
+      .svg-overlay .accent-dot {
+        fill: var(--gold-light);
+        opacity: 0.5;
+      }
+      @keyframes dash-drift {
+        to {
+          stroke-dashoffset: -40;
+        }
+      }
+      .svg-overlay .drift-line {
+        animation: dash-drift 12s linear infinite;
+      }
+
+      /* ── Main container ── */
+      .app-container {
+        position: relative;
+        z-index: 1;
+        max-width: 1320px;
+        margin: 0 auto;
+        padding: 24px 24px 48px;
+        display: flex;
+        flex-direction: column;
+        gap: 28px;
+        min-height: 100vh;
+        min-height: 100dvh;
+        justify-content: center;
+      }
+
+      /* ── Header ── */
+      .header {
+        text-align: center;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 6px;
+      }
+      .header .badge-row {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        justify-content: center;
+      }
+      .header .dim-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        font-size: 11px;
+        font-weight: 600;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: var(--fg-muted);
+        padding: 4px 10px;
+        border-radius: 9999px;
+        border: 1px solid var(--border-subtle);
+        background: rgba(200, 164, 92, 0.04);
+        font-family: var(--font-en);
+      }
+      .header .dim-badge .dot {
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        flex-shrink: 0;
+      }
+      .dot-value {
+        background: var(--gold-light);
+        box-shadow: 0 0 6px var(--gold-glow);
+      }
+      .dot-client {
+        background: #d4a85c;
+        box-shadow: 0 0 5px rgba(212, 168, 92, 0.35);
+      }
+      .dot-resource {
+        background: #c9a050;
+        box-shadow: 0 0 5px rgba(201, 160, 80, 0.35);
+      }
+      .dot-finance {
+        background: #b8923a;
+        box-shadow: 0 0 5px rgba(184, 146, 58, 0.35);
+      }
+
+      .header h1 {
+        font-family: var(--font-display);
+        font-size: clamp(22px, 3.2vw, 32px);
+        font-weight: 700;
+        letter-spacing: 0.03em;
+        color: var(--fg);
+        margin-top: 2px;
+      }
+      .header h1 .gold-accent {
+        color: var(--gold-light);
+        font-weight: 800;
+      }
+      .header .subtitle {
+        font-size: 13px;
+        color: var(--fg-muted);
+        letter-spacing: 0.08em;
+        font-family: var(--font-en);
+        font-weight: 500;
+      }
+
+      /* ── Canvas grid ── */
+      .canvas-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr 1.35fr 1fr 1fr;
+        grid-template-rows: 1fr 1fr auto;
+        grid-template-areas:
+          "kp   ka   vp   cr   cs"
+          "kr-t kr-b vp   ch   ."
+          "cost cost cost rev  rev";
+        gap: 14px;
+        width: 100%;
+        flex: 1;
+      }
+
+      /* ── Card base ── */
+      .card {
+        background: var(--bg-card);
+        border: 1px solid var(--border-subtle);
+        border-radius: var(--radius-card);
+        padding: 18px 16px 14px;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        position: relative;
+        transition:
+          background var(--transition-fast),
+          border-color var(--transition-fast),
+          box-shadow var(--transition-fast),
+          transform var(--transition-fast);
+        cursor: default;
+        min-height: 120px;
+        animation: card-enter 0.55s ease-out both;
+      }
+      .card:hover {
+        background: var(--bg-card-hover);
+        border-color: var(--border-hover);
+        box-shadow:
+          0 0 28px var(--gold-soft),
+          0 4px 20px rgba(0, 0, 0, 0.5);
+        transform: translateY(-2px);
+        z-index: 2;
+      }
+      .card::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 20px;
+        right: 20px;
+        height: 2px;
+        background: linear-gradient(90deg, transparent, var(--gold-dim), transparent);
+        border-radius: 0 0 2px 2px;
+        opacity: 0.5;
+        transition:
+          opacity var(--transition-fast),
+          background var(--transition-fast);
+      }
+      .card:hover::before {
+        opacity: 1;
+        background: linear-gradient(90deg, transparent, var(--gold-light), transparent);
+      }
+
+      .card .card-dim-tag {
+        font-size: 10px;
+        font-weight: 600;
+        letter-spacing: 0.07em;
+        text-transform: uppercase;
+        color: var(--fg-muted);
+        font-family: var(--font-en);
+        display: flex;
+        align-items: center;
+        gap: 5px;
+      }
+      .card .card-dim-tag .mini-dot {
+        width: 5px;
+        height: 5px;
+        border-radius: 50%;
+        background: var(--gold-dim);
+      }
+      .card:hover .card-dim-tag .mini-dot {
+        background: var(--gold-light);
+        box-shadow: 0 0 5px var(--gold-glow);
+      }
+
+      .card .card-title {
+        font-family: var(--font-display);
+        font-size: clamp(15px, 1.4vw, 18px);
+        font-weight: 700;
+        color: var(--fg);
+        letter-spacing: 0.02em;
+        line-height: 1.25;
+      }
+      .card .card-desc {
+        font-size: 12.5px;
+        color: var(--fg-dim);
+        line-height: 1.55;
+        flex: 1;
+      }
+      .card .card-items {
+        list-style: none;
+        display: flex;
+        flex-direction: column;
+        gap: 3px;
+        font-size: 12px;
+        color: var(--fg-muted);
+      }
+      .card .card-items li {
+        display: flex;
+        align-items: flex-start;
+        gap: 6px;
+        line-height: 1.45;
+      }
+      .card .card-items li::before {
+        content: "◇";
+        color: var(--gold-dim);
+        font-size: 8px;
+        flex-shrink: 0;
+        margin-top: 4px;
+        transition: color var(--transition-fast);
+      }
+      .card:hover .card-items li::before {
+        color: var(--gold-light);
+      }
+
+      /* ── Card entrance stagger ── */
+      .card:nth-child(1) {
+        animation-delay: 0.04s;
+      }
+      .card:nth-child(2) {
+        animation-delay: 0.1s;
+      }
+      .card:nth-child(3) {
+        animation-delay: 0.06s;
+      }
+      .card:nth-child(4) {
+        animation-delay: 0.14s;
+      }
+      .card:nth-child(5) {
+        animation-delay: 0.18s;
+      }
+      .card:nth-child(6) {
+        animation-delay: 0.22s;
+      }
+      .card:nth-child(7) {
+        animation-delay: 0.26s;
+      }
+      .card:nth-child(8) {
+        animation-delay: 0.3s;
+      }
+      .card:nth-child(9) {
+        animation-delay: 0.34s;
+      }
+
+      @keyframes card-enter {
+        from {
+          opacity: 0;
+          transform: translateY(16px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      /* ── VP special card ── */
+      .card-vp {
+        background: radial-gradient(ellipse at center top, rgba(200, 164, 92, 0.07) 0%, var(--bg-card) 65%);
+        border-color: var(--border-hover);
+        box-shadow:
+          0 0 40px var(--gold-soft),
+          inset 0 1px 0 rgba(200, 164, 92, 0.08);
+        z-index: 1;
+      }
+      .card-vp::before {
+        opacity: 1;
+        background: linear-gradient(90deg, transparent, var(--gold-light), transparent);
+        height: 2.5px;
+      }
+      .card-vp::after {
+        content: "";
+        position: absolute;
+        inset: -1px;
+        border-radius: var(--radius-card);
+        padding: 1px;
+        background: linear-gradient(160deg, rgba(200, 164, 92, 0.35), transparent 40%, transparent 60%, rgba(200, 164, 92, 0.2));
+        -webkit-mask:
+          linear-gradient(#fff 0 0) content-box,
+          linear-gradient(#fff 0 0);
+        -webkit-mask-composite: xor;
+        mask-composite: exclude;
+        pointer-events: none;
+        z-index: -1;
+      }
+      @keyframes vp-glow-breathe {
+        0%,
+        100% {
+          box-shadow:
+            0 0 40px var(--gold-soft),
+            inset 0 1px 0 rgba(200, 164, 92, 0.08);
+        }
+        50% {
+          box-shadow:
+            0 0 65px rgba(200, 164, 92, 0.3),
+            0 0 120px rgba(200, 164, 92, 0.08),
+            inset 0 1px 0 rgba(200, 164, 92, 0.14);
+        }
+      }
+      .card-vp {
+        animation:
+          card-enter 0.55s ease-out 0.06s both,
+          vp-glow-breathe 3.6s ease-in-out infinite;
+      }
+      .card-vp:hover {
+        box-shadow:
+          0 0 70px rgba(200, 164, 92, 0.35),
+          0 0 140px rgba(200, 164, 92, 0.1),
+          0 4px 24px rgba(0, 0, 0, 0.5);
+      }
+
+      /* ── VP internal SVG ring ── */
+      .vp-ring-container {
+        position: absolute;
+        inset: -10px;
+        pointer-events: none;
+        z-index: 0;
+        opacity: 0.45;
+      }
+      .vp-ring-container svg {
+        width: 100%;
+        height: 100%;
+      }
+      @keyframes ring-rotate {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+      .vp-ring-outer {
+        transform-origin: center center;
+        animation: ring-rotate 22s linear infinite;
+      }
+      .vp-ring-inner {
+        transform-origin: center center;
+        animation: ring-rotate 16s linear infinite reverse;
+      }
+
+      /* ── Grid area assignments ── */
+      .card-kp {
+        grid-area: kp;
+      }
+      .card-ka {
+        grid-area: ka;
+      }
+      .card-vp {
+        grid-area: vp;
+      }
+      .card-cr {
+        grid-area: cr;
+      }
+      .card-cs {
+        grid-area: cs;
+      }
+      .card-kr {
+        grid-area: kr-t;
+        align-self: start;
+      }
+      .card-ch {
+        grid-area: ch;
+        align-self: start;
+      }
+      .card-cost {
+        grid-area: cost;
+      }
+      .card-rev {
+        grid-area: rev;
+      }
+
+      /* KR bottom spill */
+      .card-kr-bottom {
+        grid-area: kr-b;
+        align-self: start;
+        margin-top: -2px;
+      }
+
+      /* ── Bottom row cards ── */
+      .card-cost,
+      .card-rev {
+        min-height: 110px;
+        flex-direction: row;
+        flex-wrap: wrap;
+        align-items: flex-start;
+        gap: 14px;
+        padding: 16px 20px;
+      }
+      .card-cost .card-col,
+      .card-rev .card-col {
+        flex: 1 1 180px;
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+      }
+
+      /* ── Footer ── */
+      .footer-note {
+        text-align: center;
+        font-size: 11px;
+        color: var(--fg-muted);
+        letter-spacing: 0.04em;
+        font-family: var(--font-en);
+        opacity: 0.55;
+        padding-bottom: 4px;
+      }
+
+      /* ── Responsive: tablet ── */
+      @media (max-width: 1024px) {
+        .canvas-grid {
+          grid-template-columns: 1fr 1fr 1.2fr 1fr 1fr;
+          gap: 10px;
+        }
+        .card {
+          padding: 14px 12px 12px;
+          min-height: 100px;
+          gap: 5px;
+        }
+        .card .card-title {
+          font-size: 14px;
+        }
+        .card .card-desc {
+          font-size: 11.5px;
+        }
+        .card .card-items {
+          font-size: 11px;
+          gap: 2px;
+        }
+        .vp-ring-container {
+          inset: -6px;
+        }
+      }
+
+      /* ── Responsive: mobile ── */
+      @media (max-width: 768px) {
+        .app-container {
+          padding: 18px 14px 36px;
+          gap: 16px;
+          justify-content: flex-start;
+        }
+        .canvas-grid {
+          display: flex;
+          flex-direction: column;
+          gap: 12px;
+        }
+        .card {
+          min-height: auto;
+          padding: 16px 14px 14px;
+          gap: 6px;
+          animation: card-enter-mobile 0.4s ease-out both;
+        }
+        @keyframes card-enter-mobile {
+          from {
+            opacity: 0;
+            transform: translateY(12px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+        .card:nth-child(1) {
+          animation-delay: 0.02s;
+        }
+        .card:nth-child(2) {
+          animation-delay: 0.06s;
+        }
+        .card:nth-child(3) {
+          animation-delay: 0.04s;
+        }
+        .card:nth-child(4) {
+          animation-delay: 0.1s;
+        }
+        .card:nth-child(5) {
+          animation-delay: 0.14s;
+        }
+        .card:nth-child(6) {
+          animation-delay: 0.18s;
+        }
+        .card:nth-child(7) {
+          animation-delay: 0.22s;
+        }
+        .card:nth-child(8) {
+          animation-delay: 0.26s;
+        }
+        .card:nth-child(9) {
+          animation-delay: 0.3s;
+        }
+        .card-vp {
+          order: -1;
+          background: radial-gradient(ellipse at center top, rgba(200, 164, 92, 0.1) 0%, var(--bg-card) 60%);
+          box-shadow:
+            0 0 50px var(--gold-soft),
+            inset 0 1px 0 rgba(200, 164, 92, 0.1);
+          animation:
+            card-enter-mobile 0.4s ease-out 0.01s both,
+            vp-glow-breathe 3.6s ease-in-out infinite;
+        }
+        .card-vp::after {
+          background: linear-gradient(160deg, rgba(200, 164, 92, 0.45), transparent 40%, transparent 60%, rgba(200, 164, 92, 0.25));
+        }
+        .vp-ring-container {
+          inset: -4px;
+          opacity: 0.35;
+        }
+        .card-cost,
+        .card-rev {
+          flex-direction: column;
+          gap: 8px;
+        }
+        .card-cost .card-col,
+        .card-rev .card-col {
+          flex: 1 1 auto;
+        }
+        .card .card-title {
+          font-size: 15px;
+        }
+        .card .card-desc {
+          font-size: 12.5px;
+        }
+        .card .card-items {
+          font-size: 11.5px;
+        }
+        .header h1 {
+          font-size: 20px;
+        }
+        .header .subtitle {
+          font-size: 11px;
+        }
+        .header .dim-badge {
+          font-size: 10px;
+          padding: 3px 8px;
+        }
+        .svg-overlay {
+          opacity: 0.14;
+        }
+      }
+
+      @media (max-width: 400px) {
+        .app-container {
+          padding: 12px 8px 28px;
+          gap: 10px;
+        }
+        .card {
+          padding: 12px 10px 10px;
+          border-radius: 12px;
+          gap: 4px;
+        }
+        .card .card-title {
+          font-size: 13.5px;
+        }
+        .card .card-desc {
+          font-size: 11px;
+        }
+        .card .card-items {
+          font-size: 10.5px;
+        }
+        .header h1 {
+          font-size: 18px;
+        }
+      }
+
+      /* ── Selection / focus ── */
+      .card:focus-visible {
+        outline: 2px solid var(--gold-light);
+        outline-offset: 2px;
+        border-radius: var(--radius-card);
+      }
+    </style>
+  </head>
+  <body>
+    <!-- ── Particle canvas ── -->
+    <canvas id="particle-canvas" aria-hidden="true"></canvas>
+
+    <!-- ── SVG decorative overlay ── -->
+    <svg class="svg-overlay" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid slice">
+      <defs>
+        <radialGradient id="g-vp" cx="50%" cy="42%" r="55%">
+          <stop offset="0%" stop-color="rgba(200,164,92,0.12)" />
+          <stop offset="100%" stop-color="rgba(200,164,92,0)" />
+        </radialGradient>
+      </defs>
+      <!-- Subtle golden center glow -->
+      <circle cx="50%" cy="46%" r="28%" fill="url(#g-vp)" />
+      <!-- Decorative drifting lines -->
+      <g class="drift-line" opacity="0.3">
+        <line x1="15%" y1="28%" x2="42%" y2="28%" stroke-dasharray="3 7" />
+        <line x1="58%" y1="28%" x2="85%" y2="28%" stroke-dasharray="3 7" />
+        <line x1="15%" y1="66%" x2="42%" y2="66%" stroke-dasharray="4 8" />
+        <line x1="58%" y1="66%" x2="85%" y2="66%" stroke-dasharray="4 8" />
+        <line x1="28%" y1="82%" x2="72%" y2="82%" stroke-dasharray="5 9" />
+      </g>
+      <!-- Accent dots at grid intersections -->
+      <circle class="accent-dot" cx="17%" cy="28%" r="2.5" />
+      <circle class="accent-dot" cx="38%" cy="28%" r="2" />
+      <circle class="accent-dot" cx="62%" cy="28%" r="2" />
+      <circle class="accent-dot" cx="83%" cy="28%" r="2.5" />
+      <circle class="accent-dot" cx="17%" cy="66%" r="2" />
+      <circle class="accent-dot" cx="38%" cy="66%" r="2.5" />
+      <circle class="accent-dot" cx="62%" cy="66%" r="2.5" />
+      <circle class="accent-dot" cx="83%" cy="66%" r="2" />
+      <circle class="accent-dot" cx="50%" cy="82%" r="2.5" />
+    </svg>
+
+    <!-- ── App container ── -->
+    <div class="app-container">
+      <!-- Header -->
+      <header class="header">
+        <div class="badge-row">
+          <span class="dim-badge"><span class="dot dot-value"></span> 价值维度</span>
+          <span class="dim-badge"><span class="dot dot-client"></span> 客户维度</span>
+          <span class="dim-badge"><span class="dot dot-resource"></span> 资源维度</span>
+          <span class="dim-badge"><span class="dot dot-finance"></span> 财务维度</span>
+        </div>
+        <h1><span class="gold-accent">商业画布</span> · Business Model Canvas</h1>
+        <p class="subtitle">9 大模块 · 4 大维度 · 可视化商业模式评估框架</p>
+      </header>
+
+      <!-- Canvas grid -->
+      <main class="canvas-grid">
+        <!-- 1. 关键合作伙伴 KP -->
+        <article class="card card-kp" tabindex="0" aria-label="关键合作伙伴">
+          <span class="card-dim-tag"><span class="mini-dot"></span> 资源维度</span>
+          <h3 class="card-title">关键合作伙伴</h3>
+          <p class="card-desc">与外部机构建立战略联盟，降低风险、获取资源。</p>
+          <ul class="card-items">
+            <li>云基础设施提供商（AWS / 阿里云）</li>
+            <li>设计素材与版权供应商</li>
+            <li>行业培训与认证机构</li>
+          </ul>
+        </article>
+
+        <!-- 2. 关键活动 KA -->
+        <article class="card card-ka" tabindex="0" aria-label="关键活动">
+          <span class="card-dim-tag"><span class="mini-dot"></span> 资源维度</span>
+          <h3 class="card-title">关键活动</h3>
+          <p class="card-desc">企业维持运转必须执行的核心业务动作。</p>
+          <ul class="card-items">
+            <li>AI 算法研发与模型迭代</li>
+            <li>SaaS 平台维护与安全保障</li>
+            <li>内容运营与社区活跃维护</li>
+          </ul>
+        </article>
+
+        <!-- 3. 价值主张 VP — centerpiece -->
+        <article class="card card-vp" tabindex="0" aria-label="价值主张 — 核心">
+          <span class="card-dim-tag"><span class="mini-dot"></span> 价值维度 · 核心</span>
+          <h3 class="card-title">价值主张</h3>
+          <p class="card-desc">AI 驱动的设计协作平台，将沟通成本降低 80%，一站式完成从创意到交付。</p>
+          <ul class="card-items">
+            <li>智能设计建议与自动排版引擎</li>
+            <li>实时多人协作 + 版本回溯</li>
+            <li>跨平台一键导出与品牌资产管理</li>
+          </ul>
+          <div class="vp-ring-container" aria-hidden="true">
+            <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+              <ellipse class="vp-ring-outer" cx="100" cy="100" rx="88" ry="88" fill="none" stroke="rgba(200,164,92,0.25)" stroke-width="0.8" stroke-dasharray="8 18" />
+              <ellipse class="vp-ring-inner" cx="100" cy="100" rx="72" ry="72" fill="none" stroke="rgba(200,164,92,0.18)" stroke-width="0.6" stroke-dasharray="5 22" />
+              <circle cx="100" cy="12" r="2.5" fill="rgba(226,201,126,0.7)" />
+              <circle cx="100" cy="188" r="2" fill="rgba(200,164,92,0.45)" />
+              <circle cx="12" cy="100" r="2" fill="rgba(200,164,92,0.45)" />
+              <circle cx="188" cy="100" r="2.5" fill="rgba(226,201,126,0.7)" />
+            </svg>
+          </div>
+        </article>
+
+        <!-- 4. 客户关系 CR -->
+        <article class="card card-cr" tabindex="0" aria-label="客户关系">
+          <span class="card-dim-tag"><span class="mini-dot"></span> 客户维度</span>
+          <h3 class="card-title">客户关系</h3>
+          <p class="card-desc">与目标客户群体建立并维护的关系类型。</p>
+          <ul class="card-items">
+            <li>专属客户成功经理（企业版）</li>
+            <li>自助知识库与智能问答助手</li>
+            <li>用户社区论坛与季度线上研讨会</li>
+          </ul>
+        </article>
+
+        <!-- 5. 客户细分 CS -->
+        <article class="card card-cs" tabindex="0" aria-label="客户细分">
+          <span class="card-dim-tag"><span class="mini-dot"></span> 客户维度</span>
+          <h3 class="card-title">客户细分</h3>
+          <p class="card-desc">锁定目标客户群体，明确为谁创造最大价值。</p>
+          <ul class="card-items">
+            <li>中型设计团队（10–50 人）</li>
+            <li>互联网产品经理与创业者</li>
+            <li>自由设计师与小型创意工作室</li>
+          </ul>
+        </article>
+
+        <!-- 6. 关键资源 KR (top) -->
+        <article class="card card-kr" tabindex="0" aria-label="关键资源">
+          <span class="card-dim-tag"><span class="mini-dot"></span> 资源维度</span>
+          <h3 class="card-title">关键资源</h3>
+          <p class="card-desc">让商业模式有效运转所需的核心资产。</p>
+          <ul class="card-items">
+            <li>AI 设计引擎与专利算法</li>
+            <li>海量设计资产库与模板系统</li>
+            <li>核心研发与设计人才团队</li>
+          </ul>
+        </article>
+
+        <!-- 6b. 关键资源 (bottom spill) — mobile only visual, desktop hidden via grid -->
+        <article class="card card-kr-bottom" tabindex="0" aria-label="关键资源补充" style="display: none">
+          <!-- hidden; exists only if grid needs a second KR slot; content mirrored above -->
+        </article>
+
+        <!-- 7. 渠道通路 CH -->
+        <article class="card card-ch" tabindex="0" aria-label="渠道通路">
+          <span class="card-dim-tag"><span class="mini-dot"></span> 客户维度</span>
+          <h3 class="card-title">渠道通路</h3>
+          <p class="card-desc">接触、沟通并交付价值给客户的途径。</p>
+          <ul class="card-items">
+            <li>官方网站直销与免费试用引流</li>
+            <li>行业大会（IXDC / 云栖）展位</li>
+            <li>合作伙伴推荐与联盟营销</li>
+          </ul>
+        </article>
+
+        <!-- 8. 成本结构 C$ -->
+        <article class="card card-cost" tabindex="0" aria-label="成本结构">
+          <span class="card-dim-tag"><span class="mini-dot"></span> 财务维度</span>
+          <div class="card-col">
+            <h3 class="card-title">成本结构</h3>
+            <p class="card-desc">运营该商业模式产生的所有重大成本。</p>
+          </div>
+          <div class="card-col">
+            <ul class="card-items">
+              <li>研发人力成本（占比最高）</li>
+              <li>云基础设施与 GPU 算力</li>
+              <li>营销获客与销售佣金</li>
+              <li>办公运营与行政支出</li>
+            </ul>
+          </div>
+        </article>
+
+        <!-- 9. 收入来源 R$ -->
+        <article class="card card-rev" tabindex="0" aria-label="收入来源">
+          <span class="card-dim-tag"><span class="mini-dot"></span> 财务维度</span>
+          <div class="card-col">
+            <h3 class="card-title">收入来源</h3>
+            <p class="card-desc">从每个客户细分中获取的现金收益。</p>
+          </div>
+          <div class="card-col">
+            <ul class="card-items">
+              <li>月度 / 年度订阅费（SaaS）</li>
+              <li>企业定制开发与私有部署</li>
+              <li>培训认证与高级 API 调用</li>
+              <li>模板市场交易佣金</li>
+            </ul>
+          </div>
+        </article>
+      </main>
+
+      <!-- Footer -->
+      <footer class="footer-note">Business Model Canvas · Demo Prototype · 黑金主题</footer>
+    </div>
+
+    <!-- ── Scripts ── -->
+    <script>
+      (function () {
+        // ── Particle canvas ──
+        const canvas = document.getElementById("particle-canvas");
+        const ctx = canvas.getContext("2d");
+        let particles = [];
+        const PARTICLE_COUNT = 55;
+        const GOLD_HUES = [40, 42, 44, 38, 46];
+
+        function resizeCanvas() {
+          canvas.width = window.innerWidth;
+          canvas.height = window.innerHeight;
+        }
+        resizeCanvas();
+        window.addEventListener("resize", () => {
+          resizeCanvas();
+          initParticles();
+        });
+
+        function createParticle() {
+          return {
+            x: Math.random() * canvas.width,
+            y: Math.random() * canvas.height,
+            r: Math.random() * 1.6 + 0.4,
+            vx: (Math.random() - 0.5) * 0.35,
+            vy: (Math.random() - 0.5) * 0.35 - 0.15,
+            hue: GOLD_HUES[Math.floor(Math.random() * GOLD_HUES.length)],
+            alpha: Math.random() * 0.55 + 0.12,
+            alphaSpeed: (Math.random() - 0.5) * 0.006,
+            life: Math.random() * 400 + 200,
+            age: 0
+          };
+        }
+
+        function initParticles() {
+          particles = [];
+          for (let i = 0; i < PARTICLE_COUNT; i++) {
+            const p = createParticle();
+            p.age = Math.random() * p.life;
+            particles.push(p);
+          }
+        }
+        initParticles();
+
+        function drawParticles() {
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+          for (let i = 0; i < particles.length; i++) {
+            const p = particles[i];
+            p.x += p.vx;
+            p.y += p.vy;
+            p.age++;
+            p.alpha += p.alphaSpeed;
+
+            // Wrap around edges
+            if (p.x < -10) p.x = canvas.width + 10;
+            if (p.x > canvas.width + 10) p.x = -10;
+            if (p.y < -10) p.y = canvas.height + 10;
+            if (p.y > canvas.height + 10) p.y = -10;
+
+            // Clamp alpha
+            if (p.alpha < 0.04 || p.alpha > 0.7) p.alphaSpeed *= -1;
+            p.alpha = Math.max(0.04, Math.min(0.7, p.alpha));
+
+            // Respawn aged particles
+            if (p.age > p.life) {
+              const fresh = createParticle();
+              fresh.age = 0;
+              particles[i] = fresh;
+              continue;
+            }
+
+            const lifeRatio = 1 - p.age / p.life;
+            const alpha = p.alpha * lifeRatio;
+
+            ctx.beginPath();
+            ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+            ctx.fillStyle = `hsla(${p.hue}, 55%, 62%, ${alpha})`;
+            ctx.fill();
+
+            // Subtle glow on larger particles
+            if (p.r > 1.2 && alpha > 0.25) {
+              ctx.beginPath();
+              ctx.arc(p.x, p.y, p.r * 2.5, 0, Math.PI * 2);
+              ctx.fillStyle = `hsla(${p.hue}, 50%, 58%, ${alpha * 0.15})`;
+              ctx.fill();
+            }
+          }
+          requestAnimationFrame(drawParticles);
+        }
+        drawParticles();
+
+        // ── Touch feedback on cards ──
+        document.querySelectorAll(".card").forEach((card) => {
+          card.addEventListener(
+            "touchstart",
+            function () {
+              this.style.transform = "scale(0.985)";
+              this.style.transition = "transform 120ms ease-out";
+            },
+            { passive: true }
+          );
+          card.addEventListener(
+            "touchend",
+            function () {
+              this.style.transform = "";
+            },
+            { passive: true }
+          );
+          card.addEventListener(
+            "touchcancel",
+            function () {
+              this.style.transform = "";
+            },
+            { passive: true }
+          );
+        });
+
+        // ── Keyboard navigation ──
+        document.querySelectorAll(".card").forEach((card, idx) => {
+          card.addEventListener("keydown", function (e) {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              this.classList.add("card-active-pulse");
+              setTimeout(() => this.classList.remove("card-active-pulse"), 600);
+            }
+          });
+        });
+
+        console.log(
+          "%c🟡 商业画布 · Business Model Canvas %c已就绪 %c| %c黑金主题 · 9大模块 · 4大维度",
+          "color: #e2c97e; font-size: 15px; font-weight: 700;",
+          "color: #b5b0a6;",
+          "color: #7a7570;",
+          "color: #c8a45c;"
+        );
+      })();
+    </script>
+  </body>
+</html>
