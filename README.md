@@ -37,6 +37,7 @@ codex plugin add cx@dxzen-cx
 ```text
 /plugin marketplace add dxzen/cx
 /plugin install cx@dxzen-cx
+/reload-plugins
 /cx:setup
 /reload-plugins
 ```
