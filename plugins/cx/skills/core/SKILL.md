@@ -26,7 +26,7 @@ contract/design -> worktree(large optional)
 含义：
 
 1. **Intent / `work`**：确认用户真正想改变的可观察行为，并路由到最小必要阶段。
-2. **Contract / `contract`**：写短小变更契约，包含范围、非目标、Requirement 和 Scenario。
+2. **Contract / `contract`**：用资深产品经理式澄清写变更契约和 PRD HTML，契约包含范围、非目标、Requirement 和 Scenario。
 3. **Design / `design`**：只在有技术取舍、跨模块影响或 UI 影响时写设计。
 4. **TDD / `tasks` + `build`**：先拆任务，再按 RED -> GREEN -> REFACTOR 实现。
 5. **Verify / `verify`**：完成前运行 fresh verification，记录证据。
@@ -53,7 +53,7 @@ Codex: work -> debug(bug optional) -> contract -> visual(optional)
 
 上下文清理规则：
 
-- Contract 成功后建议 `/clear`，下游只依赖 `contract.md`。
+- Contract 成功后建议 `/clear`，下游实现只依赖 `contract.md`，`prd.html` 用于产品评审和沟通。
 - Visual 成功并导出 final 后强烈建议 `/clear`，下游只依赖 `prototype.final.html` 和 `style-guide.md`。
 - Design 成功后建议 `/clear`，下游只依赖 `design.md`。
 - Tasks 成功后强烈建议 `/clear`，Build 只依赖落盘产物和相关代码。
@@ -77,7 +77,7 @@ node "${HOME}/.cx/cx.js" worktree [--change <name>] [--dry-run]
 使用原则：
 
 - 创建 `.cx/` 后运行 `status`，确认目录和下一步。
-- 创建或更新 `contract.md`、`visual/`、`design.md`、`tasks.md`、`evidence.md` 后运行对应 stage 的 `validate`。
+- 创建或更新 `contract.md`、`prd.html`、`visual/`、`design.md`、`tasks.md`、`evidence.md` 后运行对应 stage 的 `validate`；当前 `prd.html` 只做 Skill 自检，不纳入 CLI validate 门禁。
 - 如果 status 显示 `Durable specs: pending-sync`，归档前必须运行 `sync --dry-run`，再运行 `sync`。
 - 归档前必须先运行 `archive --dry-run`。
 - 归档前必须有 `review.md` 且 `Decision: PASS`。
@@ -98,7 +98,7 @@ node "${HOME}/.cx/cx.js" worktree [--change <name>] [--dry-run]
 | 级别   | 使用场景                                   | 必需产物                                       |
 | ------ | ------------------------------------------ | ---------------------------------------------- |
 | Micro  | 文案、配置、小型显然修复、无行为歧义       | 不建 `.cx/changes/*`，但必须验证               |
-| Normal | 功能、Bug 修复、重构、API/UI 行为变化      | `contract.md`、`tasks.md`、TDD、验证证据       |
+| Normal | 功能、Bug 修复、重构、API/UI 行为变化      | `contract.md`、`prd.html`、`tasks.md`、TDD、验证证据 |
 | Large  | 跨模块设计、迁移、高风险架构、重要 UI 流程 | Normal 产物，加 `design.md`，UI 可加 `visual/` |
 
 拿不准时选 Normal。它的成本低，能换来清晰上下文。
@@ -112,6 +112,7 @@ node "${HOME}/.cx/cx.js" worktree [--change <name>] [--dry-run]
   changes/
     <change-id>/
       contract.md
+      prd.html
       debug.md
       specs/
         <capability>.md
@@ -145,6 +146,7 @@ Normal/Large 变更必须创建：
 
 ```text
 .cx/changes/<change-id>/contract.md
+.cx/changes/<change-id>/prd.html
 ```
 
 使用 `protocols/common.md`、`protocols/contract.md` 和 `protocols/change-spec-delta.md`。Contract 必须复制协议骨架并保留固定格式：
@@ -158,6 +160,8 @@ Normal/Large 变更必须创建：
 - `## Verification`：列出精确命令或人工检查项。
 
 Requirement 少而精，通常 1-5 个。超过 5 个时优先拆分变更。
+
+`prd.html` 是 Contract 阶段的产品沟通产物，必须与 `contract.md` 一致，包含常规 PRD 内容、产品思维脑图和核心流程图。当前 CLI validate 只校验 `contract.md` 和 change-local spec delta，不把 `prd.html` 作为门禁；但 Contract Skill 必须自检它已存在且内容完整。下游实现仍以 `contract.md` 为唯一约束来源，不能只依赖 PRD HTML 中的扩展描述。
 
 ## Design
 只有在这些条件之一成立时创建 `design.md`：

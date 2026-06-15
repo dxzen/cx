@@ -19,6 +19,9 @@
 - 长期行为已写 `Delta files: specs/<capability>.md` 并创建 change-local delta，或明确说明 skipped 原因。
 - Verification 命令足够精确。
 - 没有把实现细节伪装成需求。
+- 已创建 `.cx/changes/<change-id>/prd.html`，且内容与 `contract.md` 一致。
+- PRD HTML 包含常规 PRD 内容、产品思维脑图、核心流程图、验收标准、风险和待确认项。
+- PRD 中的假设已标注，没有编造市场、用户、竞品或指标事实。
 
 ## TDD Checklist
 

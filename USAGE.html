@@ -505,7 +505,7 @@
           <p>CX 源码中的核心设计是“阶段协议”：每一步都必须有输入、产出、校验与下一步，而不是把所有判断留在长上下文里。</p>
           </br>
           <div class="principles">
-            <div class="mini"><span class="num">01</span><h3>规范先行</h3><p>Normal/Large 先写 `contract.md`，用 Requirement 与 Scenario 固定行为。</p></div>
+            <div class="mini"><span class="num">01</span><h3>规范先行</h3><p>Normal/Large 先写 `contract.md` 和 `prd.html`，用 Requirement 与 Scenario 固定行为。</p></div>
             <div class="mini"><span class="num">02</span><h3>最小必要流程</h3><p>Micro 可轻量处理；Normal 需要契约、任务和证据；Large 增加设计或隔离。</p></div>
             <div class="mini"><span class="num">03</span><h3>TDD 铁律</h3><p>`build` 明确禁止没看到 RED 失败就写 production code。</p></div>
             <div class="mini"><span class="num">04</span><h3>证据闭环</h3><p>`verify` 必须写 fresh verification，`review` 必须给唯一 Decision。</p></div>
@@ -685,14 +685,14 @@
           group: "main",
           command: "contract <需求|change-id>",
           inputs: ["用户需求或 change-id", "可选 `debug.md`", "相关 `.cx/specs/`"],
-          duty: ["创建 `contract.md`", "写 Intent、Scope In/Out、Requirements、Scenarios、Spec Delta、Verification", "必要时创建 change-local spec delta"],
-          outputs: ["`.cx/changes/<change-id>/contract.md`", "可选 `.cx/changes/<change-id>/specs/<capability>.md`"],
-          skill: "Contract Skill 负责把需求固定成下游唯一可信输入，且不把实现细节伪装成需求。",
-          ai: "把可观察行为写成 MUST/SHOULD/MAY 与 Given/When/Then，并给出验证命令。",
-          user: "确认 Scope、Out、场景和长期规格是否正确。",
+          duty: ["创建 `contract.md` 和 `prd.html`", "写 Intent、Scope In/Out、Requirements、Scenarios、Spec Delta、Verification", "用 PRD HTML 呈现产品背景、脑图、流程图和验收标准", "必要时创建 change-local spec delta"],
+          outputs: ["`.cx/changes/<change-id>/contract.md`", "`.cx/changes/<change-id>/prd.html`", "可选 `.cx/changes/<change-id>/specs/<capability>.md`"],
+          skill: "Contract Skill 像资深产品经理一样澄清需求，把实现约束固定成下游唯一可信输入，并额外输出 PRD HTML 供产品沟通。",
+          ai: "通过多轮高价值问题收敛用户、问题、范围、优先级和验收方式，再把可观察行为写成 MUST/SHOULD/MAY 与 Given/When/Then。",
+          user: "确认目标用户、核心问题、Scope、Out、场景、优先级和长期规格是否正确。",
           upstream: "`work` 的 Intent；Bug 分支还读取 `debug.md`。",
           downstream: "UI 进入 `visual`，复杂取舍进入 `design`，否则进入 `tasks`。",
-          gates: ["Out 不能为空", "每个 Requirement 至少一个 Scenario", "Spec Delta 必须是 delta 文件或 Skipped reason", "Verification 至少一条"],
+          gates: ["Out 不能为空", "每个 Requirement 至少一个 Scenario", "Spec Delta 必须是 delta 文件或 Skipped reason", "Verification 至少一条", "`prd.html` 必须自检存在且与 contract 一致，但不纳入 CLI validate 门禁"],
           example: (s) => `contract ${s.request}\nvalidate ${s.change} --stage contract`,
         },
         visual: {
