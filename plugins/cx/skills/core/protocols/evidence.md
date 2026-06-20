@@ -16,7 +16,9 @@
 - `## Regression` 表格列必须是 `Requirement (Durable - Unchanged)`、`Scenario`、`Source Spec`、`Evidence`、`Result`。
 - Result 只能使用 `PASS`、`FAIL`、`N/A (modified)`、`N/A (removed)`；任何 `FAIL` 都阻塞下游。
 - 此章节由 verify 阶段根据 contract 的 `## Related Durable Specs` 中 unchanged 条目填充；不得手动标为 PASS。
+- 如果 contract 存在 unchanged durable specs，每个 unchanged Requirement 的每个 Scenario 都必须有 `PASS` 回归证据。
 - 如果 contract 的 `## Related Durable Specs` 为 `None` 或无 `unchanged` 条目，此章节写 `None`。
+- TDD Evidence 表格列必须是 `Requirement`、`RED`、`GREEN`、`REFACTOR`、`Scope`，并覆盖 contract 中每个 Requirement。
 - Diff Review 必须明确 `Durable specs: pending sync`、`Durable specs: updated` 或 `Durable specs: skipped because <reason>`。
 
 协议骨架：

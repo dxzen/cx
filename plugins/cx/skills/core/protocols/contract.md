@@ -19,6 +19,8 @@
 - 如果没有任何相关长期规格，写 `None`。
 - `## Spec Delta` 必须二选一：`Delta files: specs/<capability>.md`，或 `Skipped: <reason>`。
 - 如果使用 `Delta files:`，引用的 `.cx/changes/<change-id>/specs/<capability>.md` 必须同时存在。
+- `.cx/changes/<change-id>/specs/*.md` 中的每个 delta 文件都必须被 `Delta files:` 引用；不得存在未被 contract 纳入范围的 delta。
+- `Skipped:` 不能与 `Delta files:` 或 change-local spec delta 文件同时存在。
 - 不要在 contract 里 inline 写 ADDED/MODIFIED/REMOVED/RENAMED 的完整 delta；长期变更写入 change-local spec delta 文件。
 - `## Design Notes` 是协议章节；没有约束时写 `None`。
 

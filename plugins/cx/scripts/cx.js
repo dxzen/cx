@@ -8,6 +8,7 @@ const CX_DIR = ".cx";
 const REQUIRED_EVIDENCE_SECTIONS = [
   "## Verification Commands",
   "## Requirement Coverage",
+  "## Regression",
   "## TDD Evidence",
   "## Diff Review",
   "## Remaining Risk",
@@ -628,14 +629,14 @@ function validateChange(root, changeName, options = {}) {
   return issues;
 }
 
-// 校验 contract.md：必须包含五大章节，Scope In/Out 非空，有 Requirement+Scenario，Spec Delta 明确
+// 校验 contract.md：必须包含核心章节，Scope In/Out 非空，有 Requirement+Scenario，Spec Delta 明确
 function validateContract(root, filePath) {
   const content = read(filePath);
   const body = visibleMarkdownContent(content);
   const issues = [];
   const rel = relCx(root, filePath);
 
-  for (const heading of ["## Intent", "## Scope", "## Requirements", "## Spec Delta", "## Verification"]) {
+  for (const heading of ["## Intent", "## Scope", "## Requirements", "## Related Durable Specs", "## Spec Delta", "## Verification"]) {
     if (!hasHeading(content, heading)) issues.push(error(rel, `缺少章节: ${heading}`));
   }
 
@@ -658,7 +659,8 @@ function validateContract(root, filePath) {
 
   const inlineDelta = parseSpecDelta(content);
   const externalReferences = externalSpecDeltaReferences(content);
-  const hasChangeDeltas = hasChangeSpecDeltas(path.dirname(filePath));
+  const localDeltaReferences = localChangeSpecDeltaReferences(filePath);
+  const hasChangeDeltas = localDeltaReferences.length > 0;
 
   // Contract 阶段必须明确 durable specs 意图，否则到 archive 才返工成本很高
   if (!hasSpecDelta(content) && !hasChangeDeltas) {
@@ -666,7 +668,7 @@ function validateContract(root, filePath) {
       error(rel, "Spec Delta 未声明 ADDED/MODIFIED/REMOVED/RENAMED、未引用 delta files，也未写 Skipped 原因。")
     );
   }
-  if (inlineDelta.hasSubstantiveDelta && externalReferences.length === 0 && !hasChangeDeltas) {
+  if (inlineDelta.hasSubstantiveDelta) {
     issues.push(
       error(
         rel,
@@ -674,7 +676,14 @@ function validateContract(root, filePath) {
       )
     );
   }
+  if (inlineDelta.hasSkipped && (externalReferences.length > 0 || hasChangeDeltas)) {
+    issues.push(
+      error(rel, "Spec Delta 不能同时写 Skipped 和 Delta files/change-local delta 文件。")
+    );
+  }
   issues.push(...validateExternalSpecDeltaReferences(root, filePath, content));
+  issues.push(...validateReferencedSpecDeltaFiles(root, filePath, externalReferences, localDeltaReferences));
+  issues.push(...validateRelatedDurableSpecs(root, filePath, content, externalReferences));
 
   const verification = section(content, "## Verification");
   if (!/^\s*-\s+\S/m.test(verification)) {
@@ -705,6 +714,7 @@ function validateTasks(root, filePath, options = {}) {
   if (!/Command:\s*`[^`]+`/.test(body)) {
     issues.push(missingStep(rel, "tasks.md 未包含明确的 Command。"));
   }
+  issues.push(...validateTaskRequirementGroups(root, filePath, content, { strict: options.strict }));
   issues.push(...validateTaskNarrativeLanguage(root, filePath, content, { strict: options.strict }));
   issues.push(...validateParallelExecutionPlan(root, filePath, content, tasks, { strict: options.strict }));
 
@@ -928,7 +938,7 @@ function validateVisual(root, filePath) {
   return issues;
 }
 
-// 校验 evidence.md：必须包含五大章节，验证结果无 FAIL，durable specs 状态明确
+// 校验 evidence.md：必须包含必选章节，验证结果无 FAIL，durable specs 状态明确
 function validateEvidence(root, filePath, options = {}) {
   const content = read(filePath);
   const issues = [];
@@ -955,6 +965,8 @@ function validateEvidence(root, filePath, options = {}) {
     const issue = "Requirement Coverage 必须包含至少一条非占位证据。";
     issues.push(options.strict ? error(rel, issue) : warn(rel, issue));
   }
+  issues.push(...validateRegressionEvidence(root, filePath, content, { strict: options.strict }));
+  issues.push(...validateTddEvidence(root, filePath, content, { strict: options.strict }));
 
   const durableState = durableSpecState(content);
   if (durableState === "unknown") {
@@ -1083,6 +1095,12 @@ function validateDebug(root, filePath) {
   if (!/(失败测试|regression|Regression|复现)/i.test(body)) {
     issues.push(warn(rel, "debug.md 应说明如何用 regression test 复现问题。"));
   }
+  if (!/^\s*Confirmed reproduction:\s*\S.+$/im.test(body)) {
+    issues.push(error(rel, "debug.md 必须包含非空 `Confirmed reproduction:` 固定行。"));
+  }
+  if (!/^\s*Regression test fails before fix:\s*\S.+$/im.test(body)) {
+    issues.push(error(rel, "debug.md 必须包含非空 `Regression test fails before fix:` 固定行。"));
+  }
 
   return issues;
 }
@@ -1121,6 +1139,12 @@ function validateChangeSpecDeltas(root, changeName) {
     if (total === 0) {
       issues.push(error(rel, "spec delta 必须包含 ADDED/MODIFIED/REMOVED/RENAMED Requirements。"));
       continue;
+    }
+    if (
+      !fs.existsSync(durableSpecTargetForDelta(root, changeName, specPath)) &&
+      (operations.modified.length > 0 || operations.removed.length > 0 || operations.renamed.length > 0)
+    ) {
+      issues.push(error(rel, "MODIFIED/REMOVED/RENAMED 只能用于已存在的 durable spec；新 spec 只能使用 ADDED。"));
     }
 
     for (const block of operations.added.concat(operations.modified)) {
@@ -1171,6 +1195,392 @@ function validateExternalSpecDeltaReferences(root, filePath, content) {
   }
 
   return issues;
+}
+
+function validateReferencedSpecDeltaFiles(root, filePath, externalReferences, localDeltaReferences) {
+  const issues = [];
+  const rel = relCx(root, filePath);
+  const referenced = new Set(externalReferences.map(normalizeSpecReference));
+  const local = new Set(localDeltaReferences.map(normalizeSpecReference));
+
+  if (local.size > 0 && referenced.size === 0) {
+    issues.push(error(rel, "存在 change-local spec delta，但 contract 未用 `Delta files:` 明确引用。"));
+  }
+
+  for (const reference of local) {
+    if (!referenced.has(reference)) {
+      issues.push(error(rel, `change-local spec delta 未被 contract 引用: ${reference}`));
+    }
+  }
+
+  return issues;
+}
+
+function validateRelatedDurableSpecs(root, filePath, content, externalReferences) {
+  const issues = [];
+  const rel = relCx(root, filePath);
+  if (!hasHeading(content, "## Related Durable Specs")) return issues;
+
+  const related = parseRelatedDurableSpecRows(content);
+  const deltaReferences = new Set(externalReferences.map(normalizeSpecReference));
+
+  if (related.none) {
+    if (related.rows.length > 0) {
+      issues.push(error(rel, "`## Related Durable Specs` 不能同时写 None 和表格。"));
+    }
+    if (deltaReferences.size > 0) {
+      issues.push(error(rel, "`## Related Durable Specs` 为 None 时不能声明 Delta files。"));
+    }
+    return issues;
+  }
+
+  if (related.rows.length === 0) {
+    issues.push(error(rel, "`## Related Durable Specs` 必须写 None 或包含 Spec file/Status 表格。"));
+    return issues;
+  }
+  if (!related.hasHeader) {
+    issues.push(error(rel, "`## Related Durable Specs` 表格必须包含 `Spec file` 和 `Status` 表头。"));
+  }
+
+  const allowed = new Set(["unchanged", "modified", "added", "removed", "renamed"]);
+  const changedStatuses = new Set(["modified", "added", "removed", "renamed"]);
+  const changedSpecs = new Set();
+  const specFiles = [];
+
+  for (const row of related.rows) {
+    specFiles.push(row.specFile);
+    if (!row.specFile.startsWith("specs/") || !row.specFile.endsWith(".md")) {
+      issues.push(error(rel, `Related Durable Specs 的 Spec file 必须是 specs/*.md: ${row.specFile}`));
+    }
+    if (!allowed.has(row.status)) {
+      issues.push(error(rel, `Related Durable Specs 的 Status 非法: ${row.status}`));
+      continue;
+    }
+    if (["unchanged", "modified", "removed", "renamed"].includes(row.status)) {
+      const specPath = durableSpecPathFromReference(root, row.specFile);
+      if (!specPath || !fs.existsSync(specPath)) {
+        issues.push(error(rel, `Related Durable Specs 标记为 ${row.status} 的 spec 必须已存在: ${row.specFile}`));
+      }
+    }
+    if (changedStatuses.has(row.status)) {
+      changedSpecs.add(row.specFile);
+    }
+  }
+
+  const duplicate = firstDuplicate(specFiles.map((value) => value.toLowerCase()));
+  if (duplicate) {
+    issues.push(error(rel, `Related Durable Specs 不应重复列出同一个 spec: ${duplicate}`));
+  }
+
+  for (const specFile of changedSpecs) {
+    if (!deltaReferences.has(specFile)) {
+      issues.push(error(rel, `Status 为 modified/added/removed/renamed 的 spec 必须出现在 Delta files: ${specFile}`));
+    }
+  }
+  for (const reference of deltaReferences) {
+    if (!changedSpecs.has(reference)) {
+      issues.push(error(rel, `Delta files 必须在 Related Durable Specs 中标记为 modified/added/removed/renamed: ${reference}`));
+    }
+  }
+
+  return issues;
+}
+
+function parseRelatedDurableSpecRows(content) {
+  const body = section(content, "## Related Durable Specs");
+  const none = sectionHasNone(body);
+  const tableRows = markdownTableRows(body);
+  const hasHeader = tableRows.some((row) => isTableHeader(row, ["Spec file", "Status"]));
+  const rows = [];
+
+  for (const row of tableRows) {
+    if (isTableHeader(row, ["Spec file", "Status"])) continue;
+    const specFile = normalizeSpecReference(row[0]);
+    const status = cleanTableCell(row[1]).toLowerCase();
+    if (!isPlaceholderValue(specFile) || !isPlaceholderValue(status)) {
+      rows.push({ specFile, status });
+    }
+  }
+
+  return { none, hasHeader, rows };
+}
+
+function localChangeSpecDeltaReferences(contractPath) {
+  const changeDir = path.dirname(contractPath);
+  return listMarkdownFiles(path.join(changeDir, "specs"))
+    .map((filePath) => normalizeSpecReference(path.relative(changeDir, filePath)));
+}
+
+function validateTaskRequirementGroups(root, filePath, content, options = {}) {
+  const groups = taskRequirementGroups(content);
+  const issues = [];
+  const rel = relCx(root, filePath);
+  const issue = options.strict ? error : warn;
+
+  if (groups.length === 0) {
+    issues.push(issue(rel, "tasks.md 必须按 `## Requirement:` 分组声明 TDD 任务。"));
+    return issues;
+  }
+
+  for (const group of groups) {
+    if (!/^\s*-\s*\[[ xX]\]/m.test(group.body)) {
+      issues.push(issue(rel, `Requirement 任务组缺少 checkbox 任务: ${group.name}`));
+    }
+    for (const label of ["RED", "GREEN", "VERIFY", "REFACTOR"]) {
+      const pattern = new RegExp(`\\b${label}:`, "i");
+      if (!pattern.test(group.body)) {
+        issues.push(issue(rel, `Requirement 任务组缺少 ${label} 步骤: ${group.name}`));
+      }
+    }
+    if (!/Command:\s*`[^`]+`/.test(group.body)) {
+      issues.push(issue(rel, `Requirement 任务组缺少明确 Command: ${group.name}`));
+    }
+  }
+
+  return issues;
+}
+
+function taskRequirementGroups(content) {
+  const lines = visibleMarkdownLines(content);
+  const groups = [];
+  let current = null;
+
+  for (const line of lines) {
+    const heading = parseMarkdownHeading(line);
+    if (heading && heading.level === 2 && heading.title.startsWith("Requirement:")) {
+      if (current) groups.push(current);
+      current = { name: heading.title.replace(/^Requirement:\s*/i, "").trim(), lines: [] };
+      continue;
+    }
+    if (heading && heading.level <= 2 && current) {
+      groups.push(current);
+      current = null;
+      continue;
+    }
+    if (current) current.lines.push(line);
+  }
+  if (current) groups.push(current);
+
+  return groups.map((group) => ({
+    name: group.name,
+    body: group.lines.join("\n"),
+  }));
+}
+
+function validateRegressionEvidence(root, filePath, content, options = {}) {
+  const issues = [];
+  const rel = relCx(root, filePath);
+  const issue = options.strict ? error : warn;
+  if (!hasHeading(content, "## Regression")) return issues;
+
+  const regression = parseRegressionRows(content);
+  if (regression.none && regression.rows.length > 0) {
+    issues.push(error(rel, "`## Regression` 不能同时写 None 和表格。"));
+  }
+  if (regression.rows.length > 0 && !regression.hasHeader) {
+    issues.push(issue(rel, "`## Regression` 表格必须包含固定列名。"));
+  }
+
+  const allowed = new Set(["PASS", "FAIL", "N/A (MODIFIED)", "N/A (REMOVED)"]);
+  const passRows = new Set();
+  for (const row of regression.rows) {
+    if (row.raw.length < 5) {
+      issues.push(issue(rel, "`## Regression` 表格每行必须包含 5 列。"));
+      continue;
+    }
+    if (!allowed.has(row.result)) {
+      issues.push(error(rel, `Regression Result 非法: ${row.result}`));
+    }
+    if (row.result === "FAIL") {
+      issues.push(error(rel, "Regression 存在 FAIL，不能进入下游。"));
+    }
+    if (row.result === "PASS") {
+      passRows.add(regressionEvidenceKey(row.requirement, row.scenario, row.sourceSpec));
+    }
+    for (const [field, value] of [
+      ["Requirement", row.requirement],
+      ["Scenario", row.scenario],
+      ["Source Spec", row.sourceSpec],
+      ["Evidence", row.evidence],
+    ]) {
+      if (isPlaceholderValue(value)) {
+        issues.push(issue(rel, `Regression 表格存在空字段: ${field}`));
+      }
+    }
+  }
+
+  const expected = expectedUnchangedRegressionItems(root, filePath);
+  issues.push(...expected.issues);
+  if (expected.items.length === 0) return issues;
+
+  if (regression.none) {
+    issues.push(error(rel, "contract 存在 unchanged durable specs，`## Regression` 不能写 None。"));
+    return issues;
+  }
+
+  for (const item of expected.items) {
+    const key = regressionEvidenceKey(item.requirement, item.scenario, item.sourceSpec);
+    if (!passRows.has(key)) {
+      issues.push(
+        error(
+          rel,
+          `缺少 unchanged durable spec 的 PASS 回归证据: ${item.sourceSpec} / ${item.requirement} / ${item.scenario}`
+        )
+      );
+    }
+  }
+
+  return issues;
+}
+
+function parseRegressionRows(content) {
+  const body = section(content, "## Regression");
+  const tableRows = markdownTableRows(body);
+  const hasHeader = tableRows.some((row) => isTableHeader(row, ["Requirement (Durable - Unchanged)", "Scenario", "Source Spec", "Evidence", "Result"]));
+  const rows = [];
+
+  for (const row of tableRows) {
+    if (isTableHeader(row, ["Requirement (Durable - Unchanged)", "Scenario", "Source Spec", "Evidence", "Result"])) continue;
+    rows.push({
+      raw: row,
+      requirement: cleanTableCell(row[0]),
+      scenario: cleanTableCell(row[1]),
+      sourceSpec: normalizeSpecReference(row[2]),
+      evidence: cleanTableCell(row[3]),
+      result: cleanTableCell(row[4]).toUpperCase(),
+    });
+  }
+
+  return { none: sectionHasNone(body), hasHeader, rows };
+}
+
+function expectedUnchangedRegressionItems(root, evidencePath) {
+  const issues = [];
+  const items = [];
+  const changeDir = path.dirname(evidencePath);
+  const contractPath = path.join(changeDir, "contract.md");
+  if (!fs.existsSync(contractPath)) return { issues, items };
+
+  const related = parseRelatedDurableSpecRows(read(contractPath));
+  for (const row of related.rows.filter((item) => item.status === "unchanged")) {
+    const specPath = durableSpecPathFromReference(root, row.specFile);
+    if (!specPath || !fs.existsSync(specPath)) {
+      issues.push(error(relCx(root, evidencePath), `Related Durable Specs 引用了不存在的 unchanged spec: ${row.specFile}`));
+      continue;
+    }
+    for (const requirement of parseRequirementBlocks(read(specPath))) {
+      for (const scenario of requirement.scenarios) {
+        items.push({
+          requirement: requirement.name,
+          scenario,
+          sourceSpec: row.specFile,
+        });
+      }
+    }
+  }
+
+  return { issues, items };
+}
+
+function validateTddEvidence(root, filePath, content, options = {}) {
+  const issues = [];
+  const rel = relCx(root, filePath);
+  const issue = options.strict ? error : warn;
+  if (!hasHeading(content, "## TDD Evidence")) return issues;
+
+  const tdd = parseTddEvidenceRows(content);
+  if (tdd.rows.length === 0) {
+    issues.push(issue(rel, "TDD Evidence 必须至少包含一条非占位证据。"));
+  }
+  if (tdd.rows.length > 0 && !tdd.hasHeader) {
+    issues.push(issue(rel, "TDD Evidence 表格必须包含固定列名。"));
+  }
+
+  const coveredRequirements = new Set();
+  for (const row of tdd.rows) {
+    if (row.raw.length < 5) {
+      issues.push(issue(rel, "TDD Evidence 表格每行必须包含 5 列。"));
+      continue;
+    }
+    if (!isPlaceholderValue(row.requirement)) {
+      coveredRequirements.add(normalizeRequirementName(row.requirement));
+    }
+    for (const [field, value] of [
+      ["Requirement", row.requirement],
+      ["RED", row.red],
+      ["GREEN", row.green],
+      ["REFACTOR", row.refactor],
+      ["Scope", row.scope],
+    ]) {
+      if (isPlaceholderValue(value)) {
+        issues.push(issue(rel, `TDD Evidence 表格存在空字段: ${field}`));
+      }
+    }
+  }
+
+  for (const requirement of contractRequirementNamesForEvidence(filePath)) {
+    if (!coveredRequirements.has(normalizeRequirementName(requirement))) {
+      issues.push(error(rel, `TDD Evidence 缺少 contract Requirement 覆盖: ${requirement}`));
+    }
+  }
+
+  return issues;
+}
+
+function parseTddEvidenceRows(content) {
+  const tableRows = markdownTableRows(section(content, "## TDD Evidence"));
+  const hasHeader = tableRows.some((row) => isTableHeader(row, ["Requirement", "RED", "GREEN", "REFACTOR", "Scope"]));
+  const rows = [];
+
+  for (const row of tableRows) {
+    if (isTableHeader(row, ["Requirement", "RED", "GREEN", "REFACTOR", "Scope"])) continue;
+    if (row.every(isPlaceholderValue)) continue;
+    rows.push({
+      raw: row,
+      requirement: cleanTableCell(row[0]),
+      red: cleanTableCell(row[1]),
+      green: cleanTableCell(row[2]),
+      refactor: cleanTableCell(row[3]),
+      scope: cleanTableCell(row[4]),
+    });
+  }
+
+  return { hasHeader, rows };
+}
+
+function contractRequirementNamesForEvidence(evidencePath) {
+  const contractPath = path.join(path.dirname(evidencePath), "contract.md");
+  if (!fs.existsSync(contractPath)) return [];
+  return parseRequirementBlocks(read(contractPath)).map((requirement) => requirement.name);
+}
+
+function durableSpecPathFromReference(root, reference) {
+  const normalized = normalizeSpecReference(reference);
+  if (!normalized.startsWith("specs/") || !normalized.endsWith(".md")) return null;
+  const specsRoot = path.resolve(cxPath(root, "specs"));
+  const target = path.resolve(specsRoot, normalized.slice("specs/".length));
+  if (!isInsidePath(specsRoot, target)) return null;
+  return target;
+}
+
+function regressionEvidenceKey(requirement, scenario, sourceSpec) {
+  return [
+    normalizeRequirementName(requirement),
+    String(scenario || "").trim().toLowerCase(),
+    normalizeSpecReference(sourceSpec).toLowerCase(),
+  ].join("\u0000");
+}
+
+function normalizeSpecReference(value) {
+  return String(value || "")
+    .replace(/`/g, "")
+    .replace(/\\/g, "/")
+    .replace(/^\.\//, "")
+    .trim();
+}
+
+function sectionHasNone(content) {
+  return visibleMarkdownLines(content).some((line) => /^\s*None\s*$/i.test(line));
 }
 
 // 解析 Markdown 中的 Requirement/Scenario 块结构，返回 [{name, scenarios[]}]
@@ -1465,9 +1875,7 @@ function hasSpecDelta(content) {
 }
 
 function hasExternalSpecDeltaReference(content) {
-  const delta = specDeltaBody(content);
-  return externalSpecDeltaReferences(content).length > 0 ||
-    /^\s*Durable specs:\s*\S.+$/im.test(delta);
+  return externalSpecDeltaReferences(content).length > 0;
 }
 
 function specDeltaBody(content) {
@@ -1547,7 +1955,7 @@ function buildSyncedSpec(root, changeName, source, target) {
   }
 
   const targetExists = fs.existsSync(target);
-  if (!targetExists && (operations.modified.length > 0 || operations.renamed.length > 0)) {
+  if (!targetExists && (operations.modified.length > 0 || operations.removed.length > 0 || operations.renamed.length > 0)) {
     throw new Error(`${relative(root, target)} 不存在；新 durable spec 只能使用 ADDED Requirements。`);
   }
 

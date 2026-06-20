@@ -11,6 +11,7 @@
 - 必须包含 checkbox 任务，即 `- [ ]` 或 `- [x]`。
 - tasks/build/verify/review/archive 严格阶段必须显式包含 `RED:`、`GREEN:`，并使用 `Command:` 后跟反引号包裹的命令。
 - 每个任务组使用 `## Requirement: <名称>` 引用 contract Requirement。
+- 每个 `## Requirement:` 任务组必须包含 checkbox、`RED:`、`GREEN:`、`VERIFY:`、`REFACTOR:` 和至少一个 `Command:`。
 - `Expected failure:` 和 `Scope:` 后的说明必须用中文。
 - `## Parallel Execution Plan` 在 Large、实现 checkbox 达到 16 个及以上、或前后端/服务端并存时必选。
 - Parallel 计划必须包含 `Parallel build: enabled/skipped because <中文原因>`。

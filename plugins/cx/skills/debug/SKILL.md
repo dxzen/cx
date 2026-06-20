@@ -30,12 +30,13 @@ node "${HOME}/.cx/cx.js" init
    - `## Hypotheses`
    - `## Regression Test`
 5. 不得保留 `<...>` 占位符；未知信息写明确假设或待验证项。
-6. 不要先修代码。先找最小复现和 regression test 入口。
-7. 运行：
+6. 必须写入 `Confirmed reproduction:` 和 `Regression test fails before fix:` 固定行；如果尚未确认，写清阻塞原因，不得假装已复现。
+7. 不要先修代码。先找最小复现和 regression test 入口。
+8. 运行：
 
 ```bash
 node "${HOME}/.cx/cx.js" validate --change <change-id> --stage debug
 ```
 
-8. 如果有 error，立即修复。
-9. 成功后提醒用户：Debug 结论已落盘，下游只依赖 `debug.md` 和后续 `contract.md`，建议执行 `/clear` 后继续 `contract <change-id>`。
+9. 如果有 error，立即修复。
+10. 成功后提醒用户：Debug 结论已落盘，下游只依赖 `debug.md` 和后续 `contract.md`，建议执行 `/clear` 后继续 `contract <change-id>`。

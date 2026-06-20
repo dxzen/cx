@@ -38,11 +38,12 @@ description: 为 CX 变更运行 fresh verification 并记录 evidence。
    - 覆盖的 Requirement。
    - 读取的 diff 文件和剩余风险。
 4. 主 agent 汇总所有验证结果，运行必要的补充验证；任何 FAIL 或无法解释的 SKIPPED 都不得进入下游。
-5. 写入 `evidence.md`，必须复制 Evidence 协议骨架并包含 Verification Commands、Requirement Coverage、TDD Evidence、Diff Review、Remaining Risk；任何命令为 FAIL 时不得进入下游。
+5. 写入 `evidence.md`，必须复制 Evidence 协议骨架并包含 Verification Commands、Requirement Coverage、Regression、TDD Evidence、Diff Review、Remaining Risk；任何命令为 FAIL 时不得进入下游。
    - 保留表格列名 `Command`、`Result`、`Notes` 和状态值 `PASS` / `FAIL` / `SKIPPED`。
    - 保留 Diff Review 中的 `Durable specs:` 固定行格式。
    - 如果存在 `.cx/changes/<change-id>/specs/*.md`，Diff Review 写 `Durable specs: pending sync`。
    - 如果不需要长期规格，Diff Review 写 `Durable specs: skipped because <reason>`。
+   - TDD Evidence 必须覆盖 contract 中每个 Requirement，并记录 RED/GREEN/REFACTOR 证据。
    - 不要在 verify 阶段直接写 `.cx/specs/` 或把 pending sync 手动标为 updated。
    - 不得保留 `<...>` 占位符；没有剩余风险写 `None`。
 6. 运行：
