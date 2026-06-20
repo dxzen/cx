@@ -3,12 +3,11 @@
 路径：
 
 ```text
-.cx/changes/<change-id>/visual/prototype.editable.html
-.cx/changes/<change-id>/visual/prototype.final.html
+.cx/changes/<change-id>/visual/prototype.html
 ```
 
 机器必选格式：
 
-- `prototype.editable.html` 必须包含 `cx-visual-schema`、`cx-visual-saved-state`、`data-cx-prototype-root`、`CXVisualEditor` 和 `window.CXVisual`。
-- `prototype.final.html` 不得包含 `CXVisualEditor`、`window.CXVisual`、`cx-visual-schema`、`cx-visual-saved-state`、`data-cx-editor-shell`、`data-cx-editor-asset`、`data-edit-id`、`data-editable`、`data-edit-type` 或 `contenteditable`。
-- final 原型必须由用户确认后的 editable 工作稿导出，下游不得读取 editable 工作稿。
+- `prototype.html` 必须是单文件 HTML，CSS 内联，可通过浏览器直接打开。
+- 必须包含 `<title>`、清晰 heading 层级和基本可访问性。
+- 原型应覆盖 contract 中声明的关键 UI 状态，不强制特定 DOM 结构或标记。

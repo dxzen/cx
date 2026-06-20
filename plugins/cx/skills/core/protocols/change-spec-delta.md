@@ -10,6 +10,7 @@
 
 - 至少包含一个有效的 ADDED、MODIFIED、REMOVED 或 RENAMED 操作。
 - ADDED/MODIFIED 的需求必须使用 `### Requirement: <名称>`，并至少包含一个 `#### Scenario: <名称>`。
+- MODIFIED 表示：本次变更**有意**改变已有长期行为。旧版本 Requirement 对应的已有测试预期会 FAIL，contract 的 `## Related Durable Specs` 中对应的 spec 文件应标记为 `modified`（非 `unchanged`）。verify 阶段对 MODIFIED 的 Requirement 不做旧测试必须 PASS 的要求。
 - MODIFIED 必须写完整新版本，不写局部补丁。
 - REMOVED 推荐使用 `### Requirement: <名称>`，原因写在其后正文；避免用额外 bullet 写原因，因为 bullet 会被解析为另一个待移除 Requirement。
 - RENAMED 必须成对使用 `- FROM:` 和 `- TO:`。

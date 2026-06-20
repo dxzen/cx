@@ -25,7 +25,11 @@ node "${HOME}/.cx/cx.js" validate --change <change-id> --stage verify
 3. 读取 `contract.md`、`tasks.md`、`evidence.md`、contract 引用的 `.cx/changes/<change-id>/specs/*.md`、`../core/protocols/common.md` 和 `../core/protocols/review.md`，先运行 `git diff --stat`；只读取相关文件或高风险文件的 diff，避免把完整 diff 放入上下文。
 4. 对 Large 变更或高风险 diff，优先启用 subagent 并行 review：
    - Scope reviewer：检查 contract 外越界实现、无关格式化、debug code。
-   - Spec reviewer：检查每个 Requirement 是否有 evidence 支撑，change-local spec delta 是否完整表达长期行为。
+   - Spec reviewer：检查每个 Requirement 是否有 evidence 支撑，change-local spec delta 是否完整表达长期行为。额外检查：
+     - Delta 中 MODIFIED 的 Requirement 是否与 contract `## Related Durable Specs` 中 unchanged 的 Requirement 存在逻辑冲突（如前置条件被破坏、状态机冲突、权限模型不一致）。
+     - Delta 中 ADDED 的 Requirement 是否隐含覆盖或削弱了某个 unchanged Requirement 的行为。
+     - evidence.md 的 `## Regression` 表格中每个 unchanged Requirement 是否都有 PASS 证据；如有 FAIL 且未被 contract 声明 MODIFIED，标记为阻塞 finding，Severity: high。
+     - 如果发现冲突但 contract 未声明：标记为阻塞 finding，Severity: high。
    - Test reviewer：检查测试缺口、只有 happy path、缺 regression/edge case。
    - Code reviewer：检查命名、职责、错误处理、项目风格和风险点。
 5. subagent reviewer 只输出 findings，不写最终 `review.md`，不得写 `Decision`；每条 finding 必须包含 Severity、Evidence、File/Line 或无法定位的原因、建议动作。

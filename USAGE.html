@@ -505,11 +505,11 @@
           <p>CX 源码中的核心设计是“阶段协议”：每一步都必须有输入、产出、校验与下一步，而不是把所有判断留在长上下文里。</p>
           </br>
           <div class="principles">
-            <div class="mini"><span class="num">01</span><h3>规范先行</h3><p>Normal/Large 先写 `contract.md` 和 `prd.html`，用 Requirement 与 Scenario 固定行为。</p></div>
+            <div class="mini"><span class="num">01</span><h3>规范先行</h3><p>Normal/Large 先写 `contract.md`，用 Requirement 与 Scenario 固定行为。</p></div>
             <div class="mini"><span class="num">02</span><h3>最小必要流程</h3><p>Micro 可轻量处理；Normal 需要契约、任务和证据；Large 增加设计或隔离。</p></div>
             <div class="mini"><span class="num">03</span><h3>TDD 铁律</h3><p>`build` 明确禁止没看到 RED 失败就写 production code。</p></div>
             <div class="mini"><span class="num">04</span><h3>证据闭环</h3><p>`verify` 必须写 fresh verification，`review` 必须给唯一 Decision。</p></div>
-            <div class="mini"><span class="num">05</span><h3>长期事实</h3><p>`sync` 把本次 spec delta 合入 `.cx/specs/`，后续需求默认读取它。</p></div>
+            <div class="mini"><span class="num">05</span><h3>长期事实与回归</h3><p>`contract` 声明 Related Durable Specs，`verify` 对 unchanged Requirement 做回归验证，`sync` 把 delta 合入 `.cx/specs/`。</p></div>
           </div>
         </div>
         <div class="band">
@@ -610,7 +610,7 @@
         <h2>流程概要说明</h2>
         <p id="scenarioSummary"></p>
         <div class="example-cards">
-          <div class="mini"><h3>Skill/CX 负责</h3><ul><li>定义每个阶段的职责、读写文件和停止条件。</li><li>用内部门禁阻塞缺章节、缺 RED/GREEN、FAIL、pending sync、非 PASS review。</li><li>通过 `.cx/specs/` 和 archive 区分长期事实与历史账本。</li></ul></div>
+          <div class="mini"><h3>Skill/CX 负责</h3><ul><li>定义每个阶段的职责、读写文件和停止条件。</li><li>用内部门禁阻塞缺章节、缺 RED/GREEN、FAIL、pending sync、非 PASS review。</li><li>通过 `.cx/specs/` 和 archive 区分长期事实与历史账本。</li><li>`contract` 声明 Related Durable Specs，`verify` 对 unchanged Requirement 做回归验证门禁。</li></ul></div>
           <div class="mini"><h3>AI 负责</h3><ul><li>澄清需求、写 contract/tasks/evidence/review。</li><li>按 RED -> GREEN -> REFACTOR 实现并汇总验证。</li><li>发现冲突时停下说明，而不是静默猜测。</li></ul></div>
           <div class="mini"><h3>用户负责</h3><ul><li>给出目标、补充阻塞信息、确认 UI 或技术取舍。</li><li>在归档、worktree、final 原型等关键点做确认。</li><li>决定 warning 或剩余风险是否可接受。</li></ul></div>
         </div>
@@ -685,14 +685,14 @@
           group: "main",
           command: "contract <需求|change-id>",
           inputs: ["用户需求或 change-id", "可选 `debug.md`", "相关 `.cx/specs/`"],
-          duty: ["创建 `contract.md` 和 `prd.html`", "写 Intent、Scope In/Out、Requirements、Scenarios、Spec Delta、Verification", "用 PRD HTML 呈现产品背景、脑图、流程图和验收标准", "必要时创建 change-local spec delta"],
-          outputs: ["`.cx/changes/<change-id>/contract.md`", "`.cx/changes/<change-id>/prd.html`", "可选 `.cx/changes/<change-id>/specs/<capability>.md`"],
-          skill: "Contract Skill 像资深产品经理一样澄清需求，把实现约束固定成下游唯一可信输入，并额外输出 PRD HTML 供产品沟通。",
+          duty: ["创建 `contract.md`", "写 Intent、Scope In/Out、Requirements、Scenarios、Related Durable Specs、Spec Delta、Verification", "必要时创建 change-local spec delta"],
+          outputs: ["`.cx/changes/<change-id>/contract.md`", "可选 `.cx/changes/<change-id>/specs/<capability>.md`"],
+          skill: "Contract Skill 像资深产品经理一样澄清需求，把实现约束固定成下游唯一可信输入；Related Durable Specs 列出 unchanged/modified/added/removed 的长期规格，是 verify 回归验证的检查清单。",
           ai: "通过多轮高价值问题收敛用户、问题、范围、优先级和验收方式，再把可观察行为写成 MUST/SHOULD/MAY 与 Given/When/Then。",
           user: "确认目标用户、核心问题、Scope、Out、场景、优先级和长期规格是否正确。",
           upstream: "`work` 的 Intent；Bug 分支还读取 `debug.md`。",
           downstream: "UI 进入 `visual`，复杂取舍进入 `design`，否则进入 `tasks`。",
-          gates: ["Out 不能为空", "每个 Requirement 至少一个 Scenario", "Spec Delta 必须是 delta 文件或 Skipped reason", "Verification 至少一条", "`prd.html` 必须自检存在且与 contract 一致，但不纳入 CLI validate 门禁"],
+          gates: ["Out 不能为空", "每个 Requirement 至少一个 Scenario", "Related Durable Specs 表格必须与 Spec Delta 一致", "Spec Delta 必须是 delta 文件或 Skipped reason", "Verification 至少一条"],
           example: (s) => `contract ${s.request}\nvalidate ${s.change} --stage contract`,
         },
         visual: {
@@ -700,15 +700,15 @@
           group: "optional",
           command: "visual <change-id>",
           inputs: ["`contract.md`", "现有 UI 约束或前端文件", "已有 visual 产物时增量读取"],
-          duty: ["确认原型形态、视觉方向、关键交互和 Tweaks", "生成 editable 工作稿、final 确认稿、style-guide", "让下游只读 final 与 style-guide"],
-          outputs: ["`visual/prototype.editable.html`", "`visual/prototype.final.html`", "`visual/style-guide.md`"],
-          skill: "Visual Skill 把 UI 需求转成可点、可调、可确认的原型，并规定 final 纯净稿协议。",
+          duty: ["确认原型形态、视觉方向和关键交互", "调用 huashu-design 生成 prototype.html", "生成 style-guide.md 指导实现"],
+          outputs: ["`visual/prototype.html`", "`visual/style-guide.md`"],
+          skill: "Visual Skill 把 UI 需求转成可点、可确认的原型，并生成样式规范指导下游。",
           ai: "从 contract 提取 UI 状态，给出确认 brief，制作覆盖关键状态的原型。",
-          user: "选择视觉方向，体验 editable，确认并导出 final。",
+          user: "选择视觉方向，体验原型，确认后进入下游。",
           upstream: "`contract.md`。",
-          downstream: "`design/tasks/build` 读取 `prototype.final.html` 和 `style-guide.md`，不读取 editable。",
-          gates: ["editable 必须包含 Visual Editor Shell 协议", "final 不得包含编辑器痕迹", "style-guide 必须有色板、字体和 final 路径"],
-          example: (s) => `visual ${s.change}\n# 用户确认并导出 visual/prototype.final.html`,
+          downstream: "`design/tasks/build` 读取 `prototype.html` 和 `style-guide.md`。",
+          gates: ["prototype.html 可通过浏览器打开", "style-guide 必须有色板、字体和 prototype 路径"],
+          example: (s) => `visual ${s.change}`,
         },
         design: {
           title: "Design / 必要技术设计",
@@ -771,31 +771,31 @@
           example: (s) => `build ${s.change}\nstatus`,
         },
         verify: {
-          title: "Verify / Fresh verification",
-          group: "main",
-          command: "verify <change-id>",
-          inputs: ["`contract.md`", "`tasks.md`", "spec delta", "相关 diff 与验证命令"],
-          duty: ["运行最终验证", "按 Requirement 汇总覆盖", "检查 diff、TDD 证据和 durable specs 状态", "写 `evidence.md`"],
-          outputs: ["`.cx/changes/<change-id>/evidence.md`"],
-          skill: "Verify Skill 把“完成了”改成可审计证据，任何 FAIL 都不能带入下游。",
-          ai: "运行 fresh verification，记录命令、结果、关键输出、跳过原因和剩余风险。",
-          user: "提供缺失环境或确认人工检查；不能要求忽略 FAIL 继续下游。",
-          upstream: "完成的 build 与当前 diff。",
-          downstream: "`review` 读取 evidence 和 diff。",
-          gates: ["evidence 必须有五大章节", "Verification Commands 不得有 FAIL", "Requirement Coverage 必须有真实证据", "Durable specs 状态必须明确"],
+          title: “Verify / 验证与回归”,
+          group: “main”,
+          command: “verify <change-id>”,
+          inputs: [“`contract.md`（含 Related Durable Specs）”, “`tasks.md`”, “spec delta”, “unchanged 的 `.cx/specs/` 文件”, “相关 diff 与验证命令”],
+          duty: [“运行最终 fresh verification”, “对 unchanged 长期 Requirement 做回归验证”, “按 Requirement 汇总覆盖”, “检查 diff、TDD 证据和 durable specs 状态”, “写 `evidence.md`（含 Regression 表格）”],
+          outputs: [“`.cx/changes/<change-id>/evidence.md`”],
+          skill: “Verify Skill 把”完成了”改成可审计证据：新行为 fresh verification + 未修改长期行为的回归验证。任何 FAIL 都不能带入下游。”,
+          ai: “运行全量测试套件，逐项确认 unchanged Requirement 的 Scenario 仍 PASS；MODIFIED 造成的 FAIL 是预期内不阻塞。”,
+          user: “提供缺失环境或确认人工检查；不能要求忽略 FAIL 继续下游。”,
+          upstream: “完成的 build、contract 的 ## Related Durable Specs 中 unchanged 条目、当前 diff。”,
+          downstream: “`review` 读取 evidence 和 diff。”,
+          gates: [“evidence 必须有六大章节（含 Regression）”, “Verification Commands 不得有 FAIL”, “Regression 中 unchanged Requirement 不得有 FAIL”, “Requirement Coverage 必须有真实证据”, “Durable specs 状态必须明确”],
           example: (s) => `verify ${s.change}\nreview ${s.change}`,
         },
         review: {
           title: "Review / 归档前审查",
           group: "main",
           command: "review <change-id>",
-          inputs: ["`contract.md`", "`tasks.md`", "`evidence.md`", "spec delta", "相关 diff"],
-          duty: ["审查 Scope、Findings、Spec Coverage、Code Quality、Test Gaps", "写唯一 Decision", "阻塞问题必须 NEEDS_CHANGES"],
+          inputs: ["`contract.md`（含 Related Durable Specs）", "`tasks.md`", "`evidence.md`（含 Regression 表格）", "spec delta", "unchanged 的 `.cx/specs/`", "相关 diff"],
+          duty: ["审查 Scope、Findings、Spec Coverage、Code Quality、Test Gaps", "检查 delta 与 unchanged Requirement 无逻辑冲突", "写唯一 Decision", "阻塞问题必须 NEEDS_CHANGES"],
           outputs: ["`.cx/changes/<change-id>/review.md`"],
-          skill: "Review Skill 是归档前质量门，不是总结；它决定是否可进入 sync/archive。",
-          ai: "可分片审查，但最终 findings 去重、定级和 Decision 由主 agent 写。",
+          skill: "Review Skill 是归档前质量门，不是总结；Spec reviewer 额外检查 delta 与 unchanged specs 的冲突和 Regression 证据完整性。",
+          ai: "可分片审查，Spec reviewer 检查 delta 与 unchanged 规格的一致性；最终 findings 去重、定级和 Decision 由主 agent 写。",
           user: "决定是否修复阻塞项或接受非阻塞风险。",
-          upstream: "`verify` 产出的证据。",
+          upstream: "`verify` 产出的证据（含 Regression）。",
           downstream: "PASS 后，pending specs 去 `sync`，否则可 `archive`。",
           gates: ["review.md 必须有六大章节", "Decision 只能一个", "archive 前必须 PASS", "阻塞 finding 不得 PASS"],
           example: (s) => `review ${s.change}\nsync ${s.change}`,

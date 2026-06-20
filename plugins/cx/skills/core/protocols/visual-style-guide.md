@@ -10,7 +10,7 @@
 
 - 必须包含色板信息；标题或正文中需出现 `Palette`、`Color` 或 `色板`。
 - 必须包含字体信息；标题或正文中需出现 `Typography`、`Font` 或 `字体`。
-- 必须声明 `prototype.final.html`；下游只读取 final 原型和 style guide。
+- 必须声明 `prototype.html`；下游只读取 prototype.html 和 style guide。
 
 协议骨架：
 
@@ -24,8 +24,7 @@
 
 ## Prototype
 
-- 工作稿：`visual/prototype.editable.html`
-- 确认稿：`visual/prototype.final.html`
+- 路径：`visual/prototype.html`
 - 形态：overview / flow demo / 组件状态板 / responsive 页面。
 - 覆盖状态：<empty/loading/success/error/disabled/responsive 等。>
 
@@ -52,20 +51,9 @@
 
 - <点击路径、Modal/Drawer/Toast/Form 状态、动效节奏。>
 
-## Tweaks
-
-- <默认值、可调项、设计意图；仅存在于 editable 工作稿。>
-
-## Edit Mode
-
-- Editor Shell: bundled CX Visual Editor Shell。
-- 保存机制：<File System Access API、下载降级或本地 helper。>
-- final 导出：导出 `visual/prototype.final.html`，移除 Tweaks/Edit Mode/authoring 数据。
-
 ## Downstream Contract
 
-- 下游读取：`visual/prototype.final.html` 和 `visual/style-guide.md`。
-- 不读取：`visual/prototype.editable.html`。
+- 下游读取：`visual/prototype.html` 和 `visual/style-guide.md`。
 
 ## Responsive / Accessibility
 

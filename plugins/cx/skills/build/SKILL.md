@@ -60,9 +60,8 @@ node "${HOME}/.cx/cx.js" validate --change <change-id> --stage build
 
 2. 如果有 error，先修复 CX 产物，不要写 production code。
 3. 读取 `tasks.md`、`contract.md`、contract 引用的 `.cx/changes/<change-id>/specs/*.md`、可选 `design.md`、可选 `visual/style-guide.md`，以及 `../core/protocols/common.md` 和 `../core/protocols/tasks.md`。
-   - 如果存在 `visual/style-guide.md`，必须同时读取 `visual/prototype.final.html`。
-   - 如果缺少 `visual/prototype.final.html`，停止并请用户先从 `visual/prototype.editable.html` 手动导出 final 确认稿。
-   - 不读取 `visual/prototype.editable.html` 作为实现依据；它只是可编辑工作稿。
+   - 如果存在 `visual/style-guide.md`，必须同时读取 `visual/prototype.html`。
+   - 不读取其他工作稿作为实现依据。
 4. 如果 `design.md` 包含已确认的技术栈选型，把它作为实现硬约束：
    - 不得引入未确认的语言、框架、库、数据库、ORM、构建工具或测试工具。
    - 如果当前任务必须偏离已确认技术栈，停止实现并回到 `design` 重新推荐和确认。

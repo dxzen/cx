@@ -16,7 +16,18 @@ description: 为 CX 变更运行 fresh verification 并记录 evidence。
 执行步骤：
 
 1. 读取 `contract.md`、`tasks.md`、contract 引用的 `.cx/changes/<change-id>/specs/*.md`、`../core/protocols/common.md` 和 `../core/protocols/evidence.md`，先运行 `git diff --stat`；只按 Requirement、tasks 涉及文件和高风险文件分块读取 diff，不要一次性读取完整 diff。
-2. 判断是否适合 subagent 并行验证：
+1.5 回归验证（SDD 不变式门禁）：
+   a. 读取 contract.md 的 `## Related Durable Specs` 表格。
+   b. 如果表格为 `None` 或无 `unchanged` 条目，跳过回归验证，evidence.md 的 `## Regression` 写 `None`。
+   c. 读取所有标记为 `unchanged` 的 `.cx/specs/<capability>.md` 文件完整内容。
+   d. 提取所有 unchanged Requirement + Scenario，形成回归检查清单。
+   e. 运行完整测试套件（非聚焦测试命令），确保未修改的长期行为仍然成立：
+      - 每个 unchanged Requirement 的 Scenario 必须能找到对应测试并能 PASS。
+      - 如有 unchanged Scenario 找不到对应测试：标记为 Remaining Risk，在 evidence.md 的 `## Remaining Risk` 中说明。
+      - 如有测试 FAIL 且对应 Requirement 在 contract 中未声明 MODIFIED：**阻塞**，不得进入 review。先定位根因——要么是本次实现引入了退化（需修复），要么是 contract 遗漏了 MODIFIED 声明（需回到 contract 补充）。
+   f. 将回归结果写入 evidence.md 的 `## Regression` 表格。
+   g. 如果 contract 的 Spec Delta 声明了 MODIFIED/REMOVED 的 Requirement，其旧测试 FAIL 是预期的，在 Regression 表中标注 `N/A (modified)` 或 `N/A (removed)`，不阻塞——但必须确保 contract 的 `## Related Durable Specs` 中对应条目状态为 `modified`/`removed`（非 `unchanged`）。
+2. 判断是否适合 subagent 并行验证（回归验证 1.5 必须由主 agent 串行完成后再进入此步骤）：
    - 大型验证矩阵、多个独立命令或多个互不依赖的人工检查项可以并行。
    - 会争用同一数据库、端口、缓存、快照、临时目录或全局环境的命令不得并行，必须串行运行。
    - subagent 默认只读；除测试工具自身产物外，不得修改 production code、CX 产物或 durable specs。
@@ -42,3 +53,7 @@ node "${HOME}/.cx/cx.js" validate --change <change-id> --stage verify
 
 7. 如果有 error，立即修复 evidence 或补跑验证。
 8. 成功后提醒用户：Review 只依赖落盘产物和必要 diff 摘要，建议执行 `/clear` 后继续 `review`。
+
+## 完成回复
+
+最终回复只报告高信号内容：改了哪些文件或行为、运行了哪些 verification commands 及结果、durable specs 是否 sync 或 skipped、archive 是否完成、未验证风险和原因。不要用没有证据的"应该可以""看起来没问题"代替验证结果。

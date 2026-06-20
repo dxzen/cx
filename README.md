@@ -1,6 +1,6 @@
 # CX
 
-CX 是一个面向 Codex CLI 与 Claude Code 的轻量 AI 编程工作流插件。它把一次代码变更拆成几个容易执行、容易验证的步骤：先确认需求，再写契约、PRD 和任务，按 TDD 实现，最后验证、审查、同步长期规格并归档。
+CX 是一个面向 Codex CLI 与 Claude Code 的轻量 AI 编程工作流插件。它把一次代码变更拆成几个容易执行、容易验证的步骤：先确认需求，再写契约和任务，按 TDD 实现，最后验证（含长期规格回归）、审查、同步长期规格并归档。
 
 它适合：
 
@@ -114,7 +114,7 @@ sync checkout-form-states
 archive checkout-form-states
 ```
 
-`visual` 会帮助先确认交互原型和样式规范，后续实现只依赖确认后的 final 原型。
+`visual` 会帮助先确认交互原型和样式规范，后续实现只依赖确认后的原型。
 
 ## 常用命令
 
@@ -132,10 +132,10 @@ worktree <change-id>
 ## 使用习惯
 
 - 需求不明确时先 `work`，不要直接写代码。
-- Normal/Large 变更先 `contract`，由 AI 像资深产品经理一样澄清需求，并落盘 `contract.md` 和 `prd.html` 后再进入实现。
+- Normal/Large 变更先 `contract`，由 AI 像资深产品经理一样澄清需求并落盘 `contract.md` 后再进入实现。
 - `.cx` 产物遵守插件内的 Artifact Protocols，固定 heading、字段标签和表格列名不能随意改写。
 - `build` 阶段按 RED -> GREEN -> REFACTOR 做 TDD。
-- 完成前必须 `verify`，不要用“应该可以”代替验证证据。
+- 完成前必须 `verify`：运行 fresh verification + 长期规格回归验证，确保未声明修改的已有行为没被破坏。
 - `review` 通过后再 `sync` 和 `archive`。
 - 开始新变更时优先读取 `.cx/specs/`；`.cx/archive/` 主要用于追溯历史。
 

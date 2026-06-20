@@ -27,7 +27,7 @@
 
 ## Spec Coverage
 
-<每个 Requirement 是否有测试或验证证据。>
+<每个 Requirement 是否有测试或验证证据；对于 unchanged 的长期 Requirement，检查 evidence.md 的 ## Regression 表格是否有 PASS 证据，是否存在未被 contract 声明的退化。>
 
 ## Code Quality
 

@@ -8,11 +8,15 @@
 
 机器必选格式：
 
-- 必须包含 `## Intent`、`## Scope`、`## Requirements`、`## Spec Delta`、`## Verification`。
+- 必须包含 `## Intent`、`## Scope`、`## Requirements`、`## Related Durable Specs`、`## Spec Delta`、`## Verification`。
 - `## Scope` 下必须有非空 `- In:` 和 `- Out:`。
 - 每个需求必须使用 `### Requirement: <名称>`。
 - 每个 Requirement 至少包含一个 `#### Scenario: <名称>`。
 - Scenario 步骤使用 `- Given`、`- When`、`- Then`。
+- `## Related Durable Specs` 必须以表格列出所有在 contract 阶段读取并判断为相关的 `.cx/specs/` 文件；Status 只能为 `unchanged`、`modified`、`added`、`removed`、`renamed`。
+- `modified`/`added`/`removed`/`renamed` 的条目必须与 `## Spec Delta` 的 `Delta files:` 一致。
+- `unchanged` 条目表示该规格与本次变更相关但行为不变，是下游 verify 回归验证的检查清单。
+- 如果没有任何相关长期规格，写 `None`。
 - `## Spec Delta` 必须二选一：`Delta files: specs/<capability>.md`，或 `Skipped: <reason>`。
 - 如果使用 `Delta files:`，引用的 `.cx/changes/<change-id>/specs/<capability>.md` 必须同时存在。
 - 不要在 contract 里 inline 写 ADDED/MODIFIED/REMOVED/RENAMED 的完整 delta；长期变更写入 change-local spec delta 文件。
@@ -42,6 +46,12 @@
 - When <用户或系统动作>
 - Then <可观察结果>
 
+## Related Durable Specs
+
+| Spec file | Status |
+| --- | --- |
+| specs/<capability>.md | unchanged |
+
 ## Spec Delta
 
 Delta files: specs/<capability>.md
@@ -54,6 +64,14 @@ Delta files: specs/<capability>.md
 
 - `<精确测试命令>`
 - `<精确 lint/typecheck/build 命令或人工检查项>`
+```
+
+如果没有任何相关长期规格，将表格替换为：
+
+```markdown
+## Related Durable Specs
+
+None
 ```
 
 如果不沉淀 durable specs，将 `Delta files: specs/<capability>.md` 替换为：

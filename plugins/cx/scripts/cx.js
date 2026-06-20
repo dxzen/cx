@@ -422,8 +422,7 @@ function buildStatus(root) {
       evidence: exists(dir, "evidence.md"),
       review: exists(dir, "review.md"),
       visual: exists(dir, "visual", "style-guide.md"),
-      visualEditable: exists(dir, "visual", "prototype.editable.html"),
-      visualFinal: exists(dir, "visual", "prototype.final.html"),
+      visualPrototype: exists(dir, "visual", "prototype.html"),
       specDeltas: changeSpecDeltaFiles(root, name).length > 0,
       worktree: exists(cxPath(root, "worktrees", name)),
     };
@@ -513,8 +512,7 @@ function validateChange(root, changeName, options = {}) {
   const evidencePath = path.join(changeDir, "evidence.md");
   const reviewPath = path.join(changeDir, "review.md");
   const visualDir = path.join(changeDir, "visual");
-  const editablePrototypePath = path.join(visualDir, "prototype.editable.html");
-  const finalPrototypePath = path.join(visualDir, "prototype.final.html");
+  const prototypePath = path.join(visualDir, "prototype.html");
   const styleGuidePath = path.join(visualDir, "style-guide.md");
 
   // debug 阶段：只关心 debug.md
@@ -541,17 +539,12 @@ function validateChange(root, changeName, options = {}) {
 
   issues.push(...validateChangeSpecDeltas(root, changeName));
 
-  // visual 阶段校验可编辑工作稿和样式规范；下游阶段必须已有用户确认后的 final 原型
+  // visual 阶段校验原型和样式规范
   if (stage === "visual") {
-    if (!fs.existsSync(editablePrototypePath)) {
-      issues.push(error(relCx(root, editablePrototypePath), "visual 阶段必须包含 prototype.editable.html。"));
+    if (!fs.existsSync(prototypePath)) {
+      issues.push(error(relCx(root, prototypePath), "visual 阶段必须包含 prototype.html。"));
     } else {
-      issues.push(...validateEditablePrototype(root, editablePrototypePath));
-    }
-    if (!fs.existsSync(finalPrototypePath)) {
-      issues.push(warn(relCx(root, finalPrototypePath), "进入下游阶段前必须从工作稿导出 prototype.final.html。"));
-    } else {
-      issues.push(...validateFinalPrototype(root, finalPrototypePath));
+      issues.push(...validatePrototype(root, prototypePath));
     }
     if (!fs.existsSync(styleGuidePath)) {
       issues.push(error(relCx(root, styleGuidePath), "visual 阶段必须包含 style-guide.md。"));
@@ -561,10 +554,8 @@ function validateChange(root, changeName, options = {}) {
   } else if (fs.existsSync(visualDir) && !fs.existsSync(styleGuidePath)) {
     issues.push(warn(relCx(root, visualDir), "存在 visual/ 但缺少 style-guide.md。"));
   } else if (fs.existsSync(styleGuidePath)) {
-    if (!fs.existsSync(finalPrototypePath)) {
-      issues.push(error(relCx(root, finalPrototypePath), "下游阶段必须先从 prototype.editable.html 导出 prototype.final.html。"));
-    } else {
-      issues.push(...validateFinalPrototype(root, finalPrototypePath));
+    if (!fs.existsSync(prototypePath)) {
+      issues.push(error(relCx(root, prototypePath), "下游阶段必须已有 visual/prototype.html。"));
     }
     issues.push(...validateVisual(root, styleGuidePath));
   }
@@ -904,50 +895,14 @@ function validateDesign(root, filePath) {
   return issues;
 }
 
-// 校验 editable 工作稿：必须使用 CX Visual Editor Shell 协议，而不是每次手写随机编辑器
-function validateEditablePrototype(root, filePath) {
+// 校验 prototype.html：单文件 HTML，可通过浏览器打开
+function validatePrototype(root, filePath) {
   const content = read(filePath);
   const issues = [];
   const rel = relCx(root, filePath);
 
-  if (!/id=["']cx-visual-schema["']/.test(content)) {
-    issues.push(error(rel, "prototype.editable.html 必须包含 cx-visual-schema。"));
-  }
-  if (!/id=["']cx-visual-saved-state["']/.test(content)) {
-    issues.push(error(rel, "prototype.editable.html 必须包含 cx-visual-saved-state。"));
-  }
-  if (!/data-cx-prototype-root/.test(content)) {
-    issues.push(error(rel, "prototype.editable.html 必须包含 data-cx-prototype-root。"));
-  }
-  if (!/CXVisualEditor/.test(content) || !/window\.CXVisual/.test(content)) {
-    issues.push(error(rel, "prototype.editable.html 必须内联 CX Visual Editor Shell。"));
-  }
-
-  return issues;
-}
-
-// 校验 final 原型：必须是纯净确认稿，不带编辑器外壳和 authoring 数据
-function validateFinalPrototype(root, filePath) {
-  const content = read(filePath);
-  const issues = [];
-  const rel = relCx(root, filePath);
-
-  const forbidden = [
-    "CXVisualEditor",
-    "window.CXVisual",
-    "cx-visual-schema",
-    "cx-visual-saved-state",
-    "data-cx-editor-shell",
-    "data-cx-editor-asset",
-    "data-edit-id",
-    "data-editable",
-    "data-edit-type",
-    "contenteditable"
-  ];
-  for (const pattern of forbidden) {
-    if (content.includes(pattern)) {
-      issues.push(error(rel, `prototype.final.html 不得包含编辑器痕迹: ${pattern}`));
-    }
+  if (!/<html/i.test(content) || !/<body/i.test(content)) {
+    issues.push(error(rel, "prototype.html 必须是可独立打开的 HTML 文件。"));
   }
 
   return issues;
@@ -966,8 +921,8 @@ function validateVisual(root, filePath) {
   if (!/(字体|Typography|Font)/i.test(body)) {
     issues.push(error(rel, "style-guide.md 必须包含字体/Typography。"));
   }
-  if (!/prototype\.final\.html/i.test(body)) {
-    issues.push(error(rel, "style-guide.md 必须声明下游读取 visual/prototype.final.html。"));
+  if (!/prototype\.html/i.test(body)) {
+    issues.push(error(rel, "style-guide.md 必须声明下游读取 visual/prototype.html。"));
   }
 
   return issues;
@@ -2022,7 +1977,7 @@ function parseMarkdownHeading(line) {
 function inferPhase(files, tasks, review, durableSpecs) {
   if (files.debug && !files.contract) return "debug/contract";
   if (!files.contract) return "contract";
-  if (files.visual && !files.visualFinal) return "visual/final";
+  if (files.visual && !files.visualPrototype) return "visual";
   if (!files.tasks) return files.design ? "tasks" : "design/tasks";
   if (tasks && tasks.implementationRemaining > 0) return "tdd-build";
   if (!files.evidence) return "verify";
@@ -2036,7 +1991,7 @@ function inferPhase(files, tasks, review, durableSpecs) {
 // 根据产物和校验状态推断下一步操作建议
 function inferNext(files, tasks, validation, review, durableSpecs) {
   if (!files.contract) return "运行 contract <change>";
-  if (files.visual && !files.visualFinal) return "先从 visual/prototype.editable.html 导出 prototype.final.html";
+  if (files.visual && !files.visualPrototype) return "先生成 visual/prototype.html";
   if (validation.errors > 0) return "先运行 validate 并修复 error";
   if (!files.tasks) return "运行 tasks <change>";
   if (tasks && tasks.implementationRemaining > 0) return "继续 build <change>";
@@ -2058,8 +2013,7 @@ function emptyFileFlags() {
     evidence: false,
     review: false,
     visual: false,
-    visualEditable: false,
-    visualFinal: false,
+    visualPrototype: false,
     specDeltas: false,
     worktree: false,
   };
