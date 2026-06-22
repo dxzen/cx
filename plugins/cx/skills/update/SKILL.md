@@ -13,6 +13,12 @@ ${HOME}/.cx/cx.js -> <CX_PLUGIN_ROOT>/scripts/cx.js
 
 本 Skill 只刷新全局入口软链，不初始化当前项目，不创建或修改当前工作空间的 `.cx/`。
 
+CLI 排障规则：
+
+- 如果 `node "${HOME}/.cx/cx.js" --help`、软链刷新或入口验证失败，不要整篇读取 `cx.js`。
+- 先用 `ls -l "${HOME}/.cx/cx.js"`、`readlink "${HOME}/.cx/cx.js"`、`node "${HOME}/.cx/cx.js" --help` 和失败命令的原始输出定位问题。
+- 需要查看实现时，先用 `rg -n "function (main|printHelp|resolveCxRoot)|cx usage" <CX_PLUGIN_ROOT>/scripts/cx.js` 定位，再只读取相关小段。
+
 执行步骤：
 
 1. 在用户根目录创建 CX CLI 入口目录：

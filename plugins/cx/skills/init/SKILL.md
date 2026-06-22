@@ -20,6 +20,12 @@ fi
 
 如果 `.cx` 已存在，停止本 Skill，不创建软链、不运行 `node "${HOME}/.cx/cx.js" init`，并把已初始化的信息告知用户。
 
+CLI 排障规则：
+
+- 如果 `node "${HOME}/.cx/cx.js" init` 或软链验证失败，不要整篇读取 `cx.js`。
+- 先用 `ls -l "${HOME}/.cx/cx.js"`、`readlink "${HOME}/.cx/cx.js"`、`node "${HOME}/.cx/cx.js" --help` 和失败命令的原始输出定位问题。
+- 需要查看实现时，先用 `rg -n "function (main|initProject|resolveCxRoot)|cx usage|init" <CX_PLUGIN_ROOT>/scripts/cx.js` 定位，再只读取相关小段。
+
 2. 在用户根目录创建 CX CLI 入口目录：
 
 ```bash

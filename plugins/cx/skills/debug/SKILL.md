@@ -13,6 +13,12 @@ description: 使用 CX 调试流程复现 Bug、定位根因并规划 regression
 - 如果 `$ARGUMENTS` 为空，从当前用户消息和对话上下文识别 Bug。
 - 如果无法判断症状或期望行为，只问一个阻塞性问题。
 
+CLI 排障规则：
+
+- 如果 `node "${HOME}/.cx/cx.js" init`、`validate --stage debug` 或其他 CX CLI 命令失败，不要整篇读取 `cx.js`。
+- 先用 `node "${HOME}/.cx/cx.js" --help`、`node "${HOME}/.cx/cx.js" validate --change <change-id> --stage debug --json` 和失败命令的原始输出定位问题。
+- 需要查看实现时，先用 `rg -n "function (main|validateDebug|validateChange|printValidation)|debug" "${HOME}/.cx/cx.js"` 定位，再只读取相关小段。
+
 执行步骤：
 
 1. 如 `.cx/` 不存在，先运行：

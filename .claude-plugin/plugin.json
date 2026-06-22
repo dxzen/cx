@@ -1,21 +1,21 @@
 {
-  "author": {
+    "author": {
+        "name": "cx",
+        "url": "https://github.com/dxzen/cx"
+    },
+    "commands": [
+        "./commands/setup.md"
+    ],
+    "description": "需求驱动、规范先行、TDD 实现的轻量 AI 编程工作流编排框架。",
+    "keywords": [
+        "claude-code",
+        "skills",
+        "requirements",
+        "spec-first",
+        "sdd",
+        "tdd"
+    ],
+    "license": "MIT",
     "name": "cx",
-    "url": "https://github.com/dxzen/cx"
-  },
-  "commands": [
-    "./commands/setup.md"
-  ],
-  "description": "需求驱动、规范先行、TDD 实现的轻量 AI 编程工作流编排框架。",
-  "keywords": [
-    "claude-code",
-    "skills",
-    "requirements",
-    "spec-first",
-    "sdd",
-    "tdd"
-  ],
-  "license": "MIT",
-  "name": "cx",
-  "version": "1.0.1"
+    "version": "1.0.2"
 }
